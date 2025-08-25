@@ -31,7 +31,7 @@ import Heading from '../element/Heading';
 import { Pill } from '../ui/pill';
 import { Input } from '../ui/input';
 
-const statuses = ['Pending', 'Reject', 'Three Party', 'Regular'];
+const statuses = ['Pending', 'Reject', 'New Vendor', 'Regular'];
 
 interface ApproveTableData {
     indentNo: string;
@@ -40,7 +40,7 @@ interface ApproveTableData {
     product: string;
     quantity: number;
     uom: string;
-    vendorType: 'Pending' | 'Reject' | 'Three Party' | 'Regular';
+    vendorType: 'Pending' | 'Reject' | 'New Vendor' | 'Regular';
     date: string;
     attachment: string;
     specifications: string;
@@ -53,7 +53,7 @@ interface HistoryData {
     product: string;
     uom: string;
     approvedQuantity: number;
-    vendorType: 'Reject' | 'Three Party' | 'Regular';
+    vendorType: 'Reject' | 'New Vendor' | 'Regular';
     date: string;
     approvedDate: string;
     specifications: string;
@@ -403,7 +403,7 @@ export default () => {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Regular Vendor">Regular</SelectItem>
-                            <SelectItem value="Three Party">Three Party</SelectItem>
+                            <SelectItem value="New Vendor">New Vendor</SelectItem>
                             <SelectItem value="Reject">Reject</SelectItem>
                         </SelectContent>
                     </Select>
@@ -468,7 +468,7 @@ export default () => {
     // Creating Form
     const schema = z
         .object({
-            approval: z.enum(['Reject', 'Three Party', 'Regular']),
+            approval: z.enum(['Reject', 'New Vendor', 'Regular']),
             approvedQuantity: z.coerce.number().optional(),
         })
         .superRefine((data, ctx) => {
@@ -609,8 +609,8 @@ export default () => {
                                                         <SelectItem value="Regular">
                                                             Regular
                                                         </SelectItem>
-                                                        <SelectItem value="Three Party">
-                                                            Three Party
+                                                        <SelectItem value="New Vendor">
+                                                            New Vendor
                                                         </SelectItem>
                                                         <SelectItem value="Reject">
                                                             Reject

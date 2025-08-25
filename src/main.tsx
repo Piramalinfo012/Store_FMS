@@ -110,20 +110,20 @@ const routes: RouteAttributes[] = [
         notifications: (sheets) =>
             sheets.filter((sheet) => sheet.planned2 !== '' && sheet.actual2 === '').length,
     },
-    {
-        path: 'three-party-approval',
-        gateKey: 'threePartyApprovalView',
-        name: 'Three Party Approval',
-        icon: <Users size={20} />,
-        element: <RateApproval />,
-        notifications: (sheets) =>
-            sheets.filter(
-                (sheet) =>
-                    sheet.planned3 !== '' &&
-                    sheet.actual3 === '' &&
-                    sheet.vendorType === 'Three Party'
-            ).length,
-    },
+    // {
+    //     path: 'three-party-approval',
+    //     gateKey: 'threePartyApprovalView',
+    //     name: 'Three Party Approval',
+    //     icon: <Users size={20} />,
+    //     element: <RateApproval />,
+    //     notifications: (sheets) =>
+    //         sheets.filter(
+    //             (sheet) =>
+    //                 sheet.planned3 !== '' &&
+    //                 sheet.actual3 === '' &&
+    //                 sheet.vendorType === 'Three Party'
+    //         ).length,
+    // },
     {
         path: 'pending-pos',
         gateKey: 'pendingIndentsView',

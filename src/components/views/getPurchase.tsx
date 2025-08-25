@@ -62,7 +62,7 @@ export default () => {
 
     // Fetching table data
     useEffect(() => {
-        // Pending: planned5 is not null and actual5 is null
+        // Pending: planned7 is not null and actual7 is null
         setTableData(
             indentSheet
                 .filter((sheet) => sheet.planned7 !== '' && sheet.actual7 == '')
@@ -77,7 +77,7 @@ export default () => {
                 }))
         );
 
-        // History: both planned5 and actual5 are not null
+        // History: both planned7 and actual7 are not null
         setHistoryData(
             indentSheet
                 .filter((sheet) => sheet.planned7 !== '' && sheet.actual7 !== '')
@@ -249,22 +249,26 @@ export default () => {
                 );
             }
 
+            // Only update the specific fields related to purchase/bill details
+            // DO NOT update poNumber (column AQ), poCopy (column AP), or actual4 (column AN)
             await postToSheet(
                 indentSheet
                     .filter((s) => s.indentNumber === selectedIndent?.indentNo)
                     .map((prev) => ({
                         ...prev,
-                        actual7: new Date().toISOString(),
-                        billStatus: values.billStatus,
-                        billNumber: values.billNo || '',
-                        qty: values.qty || prev.approvedQuantity,
-                        leadTimeToLiftMaterial: values.leadTime || prev.leadTimeToLiftMaterial,
-                        typeOfBill: values.typeOfBill || '',
-                        billAmount: values.billAmount || 0,
-                        discountAmount: values.discountAmount || 0,
-                        paymentType: values.paymentType || '',
-                        advanceAmountIfAny: values.advanceAmount || 0,
-                        photoOfBill: photoUrl,
+                        // Only update these specific fields:
+                        actual7: new Date().toISOString(),              // Column BC
+                        billStatus: values.billStatus,                  // Column BE
+                        billNumber: values.billNo || '',               // Column BF
+                        qty: values.qty || prev.approvedQuantity,      // Column BG
+                        leadTimeToLiftMaterial: values.leadTime || prev.leadTimeToLiftMaterial, // Column BH
+                        typeOfBill: values.typeOfBill || '',           // Column BI
+                        billAmount: values.billAmount || 0,            // Column BJ
+                        discountAmount: values.discountAmount || 0,    // Column BK
+                        paymentType: values.paymentType || '',         // Column BL
+                        advanceAmountIfAny: values.advanceAmount || 0, // Column BM
+                        photoOfBill: photoUrl,                         // Column BN
+                        // DO NOT include poNumber, poCopy, or actual4 updates here
                     })),
                 'update'
             );
@@ -293,10 +297,7 @@ export default () => {
                     >
                         <ShoppingCart size={50} className="text-primary" />
                     </Heading>
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="pending">Pending</TabsTrigger>
-                        <TabsTrigger value="history">History</TabsTrigger>
-                    </TabsList>
+                    
                     <TabsContent value="pending">
                         <DataTable
                             data={tableData}

@@ -256,7 +256,7 @@ export default () => {
                                                 render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>
-                                                            Department
+                                                            Location
                                                             <span className="text-destructive">*</span>
                                                         </FormLabel>
                                                         <Select onValueChange={field.onChange} value={field.value}>
