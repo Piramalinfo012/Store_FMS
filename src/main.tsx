@@ -16,6 +16,8 @@ import RateApproval from './components/views/RateApproval';
 import ReceiveItems from './components/views/ReceiveItems';
 import StoreOutApproval from './components/views/StoreOutApproval';
 import GetPurchase from './components/views/getPurchase';
+import License from './components/views/License';
+import TrainingVideo from './components/views/TrainingVideo';
 import type { RouteAttributes } from './types';
 import {
     LayoutDashboard,
@@ -30,6 +32,8 @@ import {
     ListTodo,
     Package2,
     Store,
+    VideoIcon,
+    KeyIcon,
 } from 'lucide-react';
 import type { UserPermissions } from './types/sheets';
 import Administration from './components/views/Administration';
@@ -196,6 +200,22 @@ const routes: RouteAttributes[] = [
         icon: <ShieldUser size={20} />,
         element: <Administration />,
         notifications: () => 0,
+    },
+    {
+
+        path: 'training-video',
+        name: 'Training Video',
+        icon: <VideoIcon size={20} />,
+        element: <TrainingVideo />,
+        notifications: () => 0,
+    },
+    {
+        path: 'license',
+        name: 'License Agreement',
+        icon: <KeyIcon size={20} />,
+        element: <License />,
+        notifications: () => 0,
+
     },
 ];
 
