@@ -254,22 +254,27 @@ export default () => {
             await postToSheet(
                 indentSheet
                     .filter((s) => s.indentNumber === selectedIndent?.indentNo)
-                    .map((prev) => ({
-                        ...prev,
-                        // Only update these specific fields:
-                        actual7: new Date().toISOString(),              // Column BC
-                        billStatus: values.billStatus,                  // Column BE
-                        billNumber: values.billNo || '',               // Column BF
-                        qty: values.qty || prev.approvedQuantity,      // Column BG
-                        leadTimeToLiftMaterial: values.leadTime || prev.leadTimeToLiftMaterial, // Column BH
-                        typeOfBill: values.typeOfBill || '',           // Column BI
-                        billAmount: values.billAmount || 0,            // Column BJ
-                        discountAmount: values.discountAmount || 0,    // Column BK
-                        paymentType: values.paymentType || '',         // Column BL
-                        advanceAmountIfAny: values.advanceAmount || 0, // Column BM
-                        photoOfBill: photoUrl,                         // Column BN
-                        // DO NOT include poNumber, poCopy, or actual4 updates here
-                    })),
+                    .map((prev) => {
+                        // Destructure to exclude fields that should not be updated/submitted
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        const { actual4, poNumber, poCopy, ...rest } = prev;
+
+                        return {
+                            ...rest,
+                            // Only update these specific fields:
+                            actual7: new Date().toISOString(),              // Column BC
+                            billStatus: values.billStatus,                  // Column BE
+                            billNumber: values.billNo || '',               // Column BF
+                            qty: values.qty || prev.approvedQuantity,      // Column BG
+                            leadTimeToLiftMaterial: values.leadTime || prev.leadTimeToLiftMaterial, // Column BH
+                            typeOfBill: values.typeOfBill || '',           // Column BI
+                            billAmount: values.billAmount || 0,            // Column BJ
+                            discountAmount: values.discountAmount || 0,    // Column BK
+                            paymentType: values.paymentType || '',         // Column BL
+                            advanceAmountIfAny: values.advanceAmount || 0, // Column BM
+                            photoOfBill: photoUrl,                         // Column BN
+                        };
+                    }),
                 'update'
             );
             toast.success(`Updated purchase details for ${selectedIndent?.indentNo}`);
@@ -297,7 +302,7 @@ export default () => {
                     >
                         <ShoppingCart size={50} className="text-primary" />
                     </Heading>
-                    
+
                     <TabsContent value="pending">
                         <DataTable
                             data={tableData}

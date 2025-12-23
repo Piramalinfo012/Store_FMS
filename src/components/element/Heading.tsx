@@ -7,9 +7,10 @@ interface HeaderProps {
     heading: string;
     subtext: string;
     tabs?: boolean;
+    actions?: ReactNode;
 }
 
-export default ({ children, heading, subtext, tabs = false }: HeaderProps) => {
+export default ({ children, heading, subtext, actions, tabs = false }: HeaderProps) => {
     return (
         <div className="bg-gradient-to-br from-blue-100 via-purple-50 to-blue-50 rounded-md">
             <div className="flex justify-between p-5">
@@ -20,7 +21,10 @@ export default ({ children, heading, subtext, tabs = false }: HeaderProps) => {
                         <p className="text-muted-foreground text-sm">{subtext}</p>
                     </div>
                 </div>
-                <SidebarTrigger />
+                <div className="flex items-center gap-2">
+                    {actions}
+                    <SidebarTrigger />
+                </div>
             </div>
             {tabs && (
                 <TabsList className="w-full rounded-none bg-transparent rounded-b-md">

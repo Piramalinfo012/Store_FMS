@@ -89,36 +89,36 @@ export default () => {
         );
     }, [indentSheet]);
 
-   useEffect(() => {
-    setHistoryData(
-        receivedSheet.map((r) => {
-            const indent = indentSheet.find((i) => i.indentNumber === r.indentNumber);
-            return {
-                receiveStatus: r.receivedStatus,
-                poNumber: r.poNumber,
-                poDate: formatDate(new Date(r.poDate)),
-                vendor: indent?.approvedVendorName || '',
-                product: indent?.productName || '',
-                orderQuantity: indent?.approvedQuantity || 0,
-                uom: indent?.uom || '',
-                photoOfProduct: r.photoOfProduct,
-                receivedDate: formatDate(new Date(r.timestamp)),
+    useEffect(() => {
+        setHistoryData(
+            receivedSheet.map((r) => {
+                const indent = indentSheet.find((i) => i.indentNumber === r.indentNumber);
+                return {
+                    receiveStatus: r.receivedStatus,
+                    poNumber: r.poNumber,
+                    poDate: formatDate(new Date(r.poDate)),
+                    vendor: indent?.approvedVendorName || '',
+                    product: indent?.productName || '',
+                    orderQuantity: indent?.approvedQuantity || 0,
+                    uom: indent?.uom || '',
+                    photoOfProduct: r.photoOfProduct,
+                    receivedDate: formatDate(new Date(r.timestamp)),
 
-                receivedQuantity: r.receivedQuantity,
-                warrantyStatus: r.warrantyStatus,
-                warrantyEndDate: r.endDate ? formatDate(new Date(r.endDate)) : '',
+                    receivedQuantity: r.receivedQuantity,
+                    warrantyStatus: r.warrantyStatus,
+                    warrantyEndDate: r.endDate ? formatDate(new Date(r.endDate)) : '',
 
-                billStatus: r.billStatus,
-                billNumber: r.billNumber,
-                billAmount: r.billAmount,
-                photoOfBill: r.photoOfBill,
-                anyTransport: r.anyTransportations,
-                transporterName: r.transporterName,
-                transportingAmount: r.transportingAmount,
-            };
-        })
-    );
-}, [receivedSheet, indentSheet]);
+                    billStatus: r.billStatus,
+                    billNumber: r.billNumber,
+                    billAmount: r.billAmount,
+                    photoOfBill: r.photoOfBill,
+                    anyTransport: r.anyTransportations,
+                    transporterName: r.transporterName,
+                    transportingAmount: r.transportingAmount,
+                };
+            })
+        );
+    }, [receivedSheet, indentSheet]);
 
     const columns: ColumnDef<RecieveItemsData>[] = [
         ...(user.receiveItemView
@@ -375,10 +375,14 @@ export default () => {
             await postToSheet(
                 indentSheet
                     .filter((s) => s.indentNumber === selectedIndent?.indentNumber)
-                    .map((prev) => ({
-                        ...prev,
-                        actual5: new Date().toISOString(),
-                    })),
+                    .map((prev) => {
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        const { actual4, poNumber, poCopy, ...rest } = prev;
+                        return {
+                            ...rest,
+                            actual5: new Date().toISOString(),
+                        };
+                    }),
                 'update'
             );
             console.log('here', 5);

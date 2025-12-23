@@ -6,21 +6,373 @@ import {
     PackageCheck,
     Truck,
     Warehouse,
+    Plus,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { ChartContainer, ChartTooltip, type ChartConfig } from '../ui/chart';
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from 'recharts';
 import { useEffect, useState } from 'react';
 import { useSheets } from '@/context/SheetsContext';
-import DataTable from '../element/DataTable';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { ComboBox } from '../ui/combobox';
 import { analyzeData } from '@/lib/filter';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '../ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { Input } from '../ui/input';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { PuffLoader as Loader } from 'react-spinners';
+import { toast } from 'sonner';
+import { postToMasterSheet } from '@/lib/fetchers';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
+const vendorSchema = z.object({
+    vendorName: z.string().min(1, 'Vendor Name is required'),
+    gstNumber: z.string().min(1, 'GST Number is required'),
+    panNumber: z.string().min(1, 'PAN Number is required'),
+    contactPerson: z.string().optional(),
+    contactPersonNumber: z.string().optional(),
+});
 
+function AddVendor({ onComplete }: { onComplete: () => void }) {
+    const [open, setOpen] = useState(false);
+    const form = useForm<z.infer<typeof vendorSchema>>({
+        resolver: zodResolver(vendorSchema),
+        defaultValues: {
+            vendorName: '',
+            gstNumber: '',
+            panNumber: '',
+            contactPerson: '',
+            contactPersonNumber: '',
+        },
+    });
+
+    async function onSubmit(values: z.infer<typeof vendorSchema>) {
+        try {
+            await postToMasterSheet([values], 'VENDOR');
+            toast.success('Vendor added successfully');
+            setOpen(false);
+            form.reset();
+            onComplete();
+        } catch {
+            toast.error('Failed to add vendor');
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <Plus className="mr-2 h-4 w-4" /> Add Vendor Name
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Add Vendor</DialogTitle>
+                    <DialogDescription>Add a new vendor to the master list.</DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="vendorName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Vendor Name *</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter vendor name" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="gstNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>GST Number *</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter GST number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="panNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>PAN Number *</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter PAN number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="contactPerson"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Contact Person</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter contact person" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="contactPersonNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Contact Person Number</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                                {form.formState.isSubmitting && (
+                                    <Loader color="white" size={20} className="mr-2" />
+                                )}
+                                Save
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+const productSchema = z.object({
+    productName: z.string().min(1, 'Product Name is required'),
+    hsnNumber: z.string().min(1, 'HSN Number is required'),
+});
+
+function AddProduct({ onComplete }: { onComplete: () => void }) {
+    const [open, setOpen] = useState(false);
+    const form = useForm<z.infer<typeof productSchema>>({
+        resolver: zodResolver(productSchema),
+        defaultValues: {
+            productName: '',
+            hsnNumber: '',
+        },
+    });
+
+    async function onSubmit(values: z.infer<typeof productSchema>) {
+        try {
+            await postToMasterSheet([values], 'PRODUCT');
+            toast.success('Product added successfully');
+            setOpen(false);
+            form.reset();
+            onComplete();
+        } catch {
+            toast.error('Failed to add product');
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <Plus className="mr-2 h-4 w-4" /> Add Product Name
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Add Product</DialogTitle>
+                    <DialogDescription>Add a new product to the master list.</DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="productName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Add Product Name *</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter product name" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="hsnNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>HSN Number *</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter HSN number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                                {form.formState.isSubmitting && (
+                                    <Loader color="white" size={20} className="mr-2" />
+                                )}
+                                Save
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+const transporterSchema = z.object({
+    transporterName: z.string().optional(),
+    panNo: z.string().optional(),
+    gstNo: z.string().optional(),
+    contactNo: z.string().optional(),
+    typeOfTransporting: z.string().optional(),
+});
+
+function AddTransporter({ onComplete }: { onComplete: () => void }) {
+    const [open, setOpen] = useState(false);
+    const form = useForm<z.infer<typeof transporterSchema>>({
+        resolver: zodResolver(transporterSchema),
+        defaultValues: {
+            transporterName: '',
+            panNo: '',
+            gstNo: '',
+            contactNo: '',
+            typeOfTransporting: '',
+        },
+    });
+
+    async function onSubmit(values: z.infer<typeof transporterSchema>) {
+        try {
+            await postToMasterSheet([values], 'TRANSPORTER');
+            toast.success('Transporter added successfully');
+            setOpen(false);
+            form.reset();
+            onComplete();
+        } catch {
+            toast.error('Failed to add transporter');
+        }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <Plus className="mr-2 h-4 w-4" /> Add Transporter Name
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Add Transporter</DialogTitle>
+                    <DialogDescription>Add a new transporter to the master list.</DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="transporterName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Transporter Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter transporter name" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="panNo"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>PAN No</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter PAN number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="gstNo"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>GST No</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter GST number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="contactNo"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Contact No</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter contact number" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="typeOfTransporting"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Type of Transporting</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Enter type of transporting" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <DialogFooter>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                                {form.formState.isSubmitting && (
+                                    <Loader color="white" size={20} className="mr-2" />
+                                )}
+                                Save
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 function CustomChartTooltipContent({
     payload,
@@ -41,8 +393,9 @@ function CustomChartTooltipContent({
         </div>
     );
 }
+
 export default function UsersTable() {
-    const { receivedSheet, indentSheet, inventorySheet, inventoryLoading } = useSheets();
+    const { receivedSheet, indentSheet, updateAll } = useSheets();
     const [chartData, setChartData] = useState<
         {
             name: string;
@@ -98,12 +451,10 @@ export default function UsersTable() {
         );
         setTopVendors(topVendors);
         setIndent({ quantity: totalApprovedQuantity, count: approvedIndentCount });
-        console.log(totalApprovedQuantity,approvedIndentCount)
+        console.log(totalApprovedQuantity, approvedIndentCount);
         setPurchase({ quantity: totalPurchasedQuantity, count: receivedPurchaseCount });
         setOut({ quantity: totalIssuedQuantity, count: issuedIndentCount });
     }, [startDate, endDate, filteredProducts, filteredVendors, indentSheet, receivedSheet]);
-
-   
 
     const chartConfig = {
         quantity: {
@@ -111,9 +462,20 @@ export default function UsersTable() {
             color: 'var(--color-primary)',
         },
     } satisfies ChartConfig;
+
     return (
         <div>
-            <Heading heading="Dashboard" subtext="View you analytics">
+            <Heading
+                heading="Dashboard"
+                subtext="View you analytics"
+                actions={
+                    <>
+                        <AddVendor onComplete={() => updateAll()} />
+                        <AddProduct onComplete={() => updateAll()} />
+                        <AddTransporter onComplete={() => updateAll()} />
+                    </>
+                }
+            >
                 <LayoutDashboard size={50} className="text-primary" />
             </Heading>
 
