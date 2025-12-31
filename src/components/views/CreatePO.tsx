@@ -1185,7 +1185,7 @@ function generatePoNumber(poNumbers: string[], today = new Date()): string {
     const fyStart = today.getMonth() < 3 ? today.getFullYear() - 1 : today.getFullYear();
     const fy = `${(fyStart % 100).toString().padStart(2, '0')}-${((fyStart + 1) % 100).toString().padStart(2, '0')}`;
 
-    const prefix = `JJSPL/STORES/${fy}/`;
+    const prefix = `PPPL/STORES/${fy}/`;
 
     // Step 2: Extract numbers for curre nt financial year
     const numbersInFY = poNumbers
@@ -1262,11 +1262,11 @@ export default () => {
         supplierName: z.string().nonempty(),
         supplierAddress: z.string().nonempty(),
         gstin: z.string().nonempty(),
-        quotationNumber: z.string().nonempty(),
-        quotationDate: z.coerce.date(),
-        ourEnqNo: z.string(),
-        enquiryDate: z.coerce.date(),
-        description: z.string(),
+        quotationNumber: z.string().optional(),
+        quotationDate: z.date().optional(),
+        ourEnqNo: z.string().optional(),
+        enquiryDate: z.date().optional(),
+        description: z.string().optional(),
         indents: z
             .array(
                 z.object({
@@ -1292,7 +1292,7 @@ export default () => {
             approvedBy: '',
             gstin: '',
             quotationNumber: '',
-            quotationDate: new Date(),
+            quotationDate: undefined,
             ourEnqNo: '',
             enquiryDate: undefined,
             indents: [],
@@ -1464,7 +1464,7 @@ export default () => {
             );
 
             // Convert logo image to base64 for PDF
-            const logoResponse = await fetch('/logo.png');
+            const logoResponse = await fetch('/logo2.png');
             const logoBlob = await logoResponse.blob();
             const logoBase64 = await new Promise<string>((resolve) => {
                 const reader = new FileReader();
@@ -1473,7 +1473,7 @@ export default () => {
             });
 
             const pdfProps: POPdfProps = {
-                // companyLogo: logoBase64,
+                companyLogo: logoBase64,
                 companyName: details?.companyName || '',
                 companyPhone: details?.companyPhone || '',
                 companyGstin: details?.companyGstin || '',
@@ -1486,11 +1486,11 @@ export default () => {
                 supplierGstin: values.gstin,
                 orderNumber: poNumber,
                 orderDate: formatDate(values.poDate),
-                quotationNumber: values.quotationNumber,
-                quotationDate: formatDate(values.quotationDate),
-                enqNo: values.ourEnqNo,
-                enqDate: formatDate(values.enquiryDate),
-                description: values.description,
+                quotationNumber: values.quotationNumber || '',
+                quotationDate: values.quotationDate ? formatDate(values.quotationDate) : '',
+                enqNo: values.ourEnqNo || '',
+                enqDate: values.enquiryDate ? formatDate(values.enquiryDate) : '',
+                description: values.description || '',
                 items: values.indents.map((item) => {
                     const indent = indentSheet.find((i) => i.indentNumber === item.indentNumber)!;
                     return {
@@ -1547,16 +1547,21 @@ export default () => {
             });
             const email = details?.vendors.find((v) => v.vendorName === values.supplierName)?.email;
 
-            if (!email) {
-                toast.error("Supplier's Email was not found!");
-                return;
+            let url: string;
+            if (email) {
+                url = await uploadFile(
+                    file,
+                    import.meta.env.VITE_PURCHASE_ORDERS_FOLDER,
+                    'email',
+                    email
+                );
+            } else {
+                url = await uploadFile(
+                    file,
+                    import.meta.env.VITE_PURCHASE_ORDERS_FOLDER,
+                    'upload'
+                );
             }
-            const url = await uploadFile(
-                file,
-                import.meta.env.VITE_PURCHASE_ORDERS_FOLDER,
-                'email',
-                email
-            );
 
             const rows: PoMasterSheet[] = values.indents.map((v) => {
                 const indent = indentSheet.find((i) => i.indentNumber === v.indentNumber)!;
@@ -1566,7 +1571,7 @@ export default () => {
                     poNumber,
                     internalCode: v.indentNumber,
                     product: indent.productName,
-                    description: values.description,
+                    description: values.description || '',
                     quantity: indent.approvedQuantity,
                     unit: indent.uom,
                     rate: indent.approvedRate,
@@ -1582,10 +1587,10 @@ export default () => {
                     pdf: url,
                     preparedBy: values.preparedBy,
                     approvedBy: values.approvedBy,
-                    quotationNumber: values.quotationNumber,
-                    quotationDate: values.quotationDate.toISOString(),
-                    enquiryNumber: values.ourEnqNo,
-                    enquiryDate: values.enquiryDate.toISOString(),
+                    quotationNumber: values.quotationNumber || '',
+                    quotationDate: values.quotationDate ? values.quotationDate.toISOString() : '',
+                    enquiryNumber: values.ourEnqNo || '',
+                    enquiryDate: values.enquiryDate ? values.enquiryDate.toISOString() : '',
                     term1: values.terms[0],
                     term2: values.terms[1],
                     term3: values.terms[2],

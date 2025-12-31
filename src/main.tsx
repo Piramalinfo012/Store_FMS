@@ -179,20 +179,20 @@ const routes: RouteAttributes[] = [
             sheets.filter((sheet) => sheet.planned5 !== '' && sheet.actual5 === '').length,
     },
 
-    // {
-    //     path: 'store-out-approval',
-    //     gateKey: 'storeOutApprovalView',
-    //     name: 'Store Out Approval',
-    //     icon: <PackageCheck size={20} />,
-    //     element: <StoreOutApproval />,
-    //     notifications: (sheets) =>
-    //         sheets.filter(
-    //             (sheet) =>
-    //                 sheet.planned6 !== '' &&
-    //                 sheet.actual6 === '' &&
-    //                 sheet.indentType === 'Store Out'
-    //         ).length,
-    // },
+    {
+        path: 'store-out-approval',
+        gateKey: 'storeOutApprovalView',
+        name: 'Store Out Approval',
+        icon: <PackageCheck size={20} />,
+        element: <StoreOutApproval />,
+        notifications: (sheets) =>
+            sheets.filter(
+                (sheet) =>
+                    sheet.planned6 !== '' &&
+                    sheet.actual6 === '' &&
+                    sheet.indentType === 'Store Out'
+            ).length,
+    },
     {
         path: 'administration',
         gateKey: 'administrate',

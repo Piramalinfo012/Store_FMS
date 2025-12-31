@@ -37,6 +37,8 @@ interface GetPurchaseData {
     quantity: number;
     uom: string;
     poNumber: string;
+    approvedRate: number;
+    approvedPaymentTerm: string;
 }
 
 interface HistoryData {
@@ -74,6 +76,8 @@ export default () => {
                     quantity: sheet.approvedQuantity,
                     uom: sheet.uom,
                     poNumber: sheet.poNumber,
+                    approvedRate: sheet.approvedRate,
+                    approvedPaymentTerm: sheet.approvedPaymentTerm,
                 }))
         );
 
@@ -238,6 +242,34 @@ export default () => {
 
     const billStatus = form.watch('billStatus');
     const typeOfBill = form.watch('typeOfBill');
+    const billAmount = form.watch('billAmount');
+
+    useEffect(() => {
+        if (typeOfBill === 'independent' && selectedIndent && billAmount) {
+            const term = (selectedIndent.approvedPaymentTerm || '').toLowerCase();
+
+            if (term.includes('credit')) {
+                form.setValue('advanceAmount', 0);
+                return;
+            }
+            
+            let percentage = 0;
+            const percentageMatch = term.match(/(\d+(\.\d+)?)%/);
+
+            if (term.includes('advance')) {
+                if (percentageMatch) {
+                    percentage = parseFloat(percentageMatch[1]);
+                } else {
+                    percentage = 100; // Assume 100% if "Advance" is present check implied
+                }
+            }
+
+            if (percentage > 0) {
+                const advanceAmount = (billAmount * percentage) / 100;
+                form.setValue('advanceAmount', advanceAmount);
+            }
+        }
+    }, [typeOfBill, selectedIndent, billAmount]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         try {
