@@ -42,7 +42,7 @@ import CreatePO from './components/views/CreatePO';
 import PendingIndents from './components/views/PendingIndents';
 import Order from './components/views/Order';
 import Inventory from './components/views/Inventory';
-import POMaster from './components/views/POMaster';
+
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { loggedIn, loading } = useAuth();
@@ -145,14 +145,7 @@ const routes: RouteAttributes[] = [
         element: <CreatePO />,
         notifications: () => 0,
     },
-    {
-        path: 'po-master',
-        // gateKey: 'poMaster',
-        name: 'PO Master',
-        icon: <Users size={20} />,
-        element: <POMaster />,
-        notifications: () => 0,
-    },
+
     {
         path: 'po-history',
         gateKey: 'ordersView',
