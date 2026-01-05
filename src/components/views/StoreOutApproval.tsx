@@ -144,11 +144,14 @@ export default () => {
                                                     .filter(
                                                         (s) => s.indentNumber === indent.indentNo
                                                     )
-                                                    .map((prev) => ({
-                                                        ...prev,
-                                                        actual6: new Date().toISOString(),
-                                                        issueStatus: 'Rejected',
-                                                    })),
+                                                    .map((prev) => {
+                                                        const { actual4, poNumber, poCopy, ...rest } = prev;
+                                                        return {
+                                                            ...rest,
+                                                            actual6: new Date().toISOString(),
+                                                            issueStatus: 'Rejected',
+                                                        };
+                                                    }),
                                                 'update'
                                             );
                                             toast.success(
@@ -253,13 +256,16 @@ export default () => {
             await postToSheet(
                 indentSheet
                     .filter((s) => s.indentNumber === selectedIndent?.indentNo)
-                    .map((prev) => ({
-                        ...prev,
-                        actual6: values.approvalDate?.toISOString() ?? new Date().toISOString(),
-                        issueApprovedBy: values.approvedBy,
-                        issueStatus: 'Approved',
-                        issuedQuantity: values.issuedQuantity,
-                    })),
+                    .map((prev) => {
+                        const { actual4, poNumber, poCopy, ...rest } = prev;
+                        return {
+                            ...rest,
+                            actual6: values.approvalDate?.toISOString() ?? new Date().toISOString(),
+                            issueApprovedBy: values.approvedBy,
+                            issueStatus: 'Approved',
+                            issuedQuantity: values.issuedQuantity,
+                        };
+                    }),
                 'update'
             );
             toast.success(`Updated store out approval status of ${selectedIndent?.indentNo}`);

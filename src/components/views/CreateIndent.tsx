@@ -82,10 +82,21 @@ export default () => {
     async function onSubmit(data: z.infer<typeof schema>) {
         try {
             const rows: Partial<IndentSheet>[] = [];
+            // Calculate next Indent Number based on Max ID
+            const maxIndentNumber = indentSheet.reduce((max, item) => {
+                const parts = item.indentNumber.split('-');
+                if (parts.length === 2) {
+                    const num = parseInt(parts[1]);
+                    return !isNaN(num) && num > max ? num : max;
+                }
+                return max;
+            }, -1);
+            const nextIndentNumber = `SI-${String(maxIndentNumber + 1).padStart(4, '0')}`;
+
             for (const product of data.products) {
                 const row: Partial<IndentSheet> = {
                     timestamp: new Date().toISOString(),
-                    indentNumber: `SI-${String(indentSheet.length).padStart(4, '0')}`,
+                    indentNumber: nextIndentNumber,
                     indenterName: data.indenterName,
                     department: product.department,
                     areaOfUse: product.areaOfUse,
@@ -107,8 +118,9 @@ export default () => {
 
                 rows.push(row);
             }
-            setTimeout(() => updateIndentSheet(), 1000);
+            // Move update after post to ensure fresh data
             await postToSheet(rows);
+            updateIndentSheet();
             toast.success('Indent created successufully');
             form.reset({
                 indenterName: '',

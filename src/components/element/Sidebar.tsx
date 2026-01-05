@@ -13,8 +13,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useSheets } from '@/context/SheetsContext';
 import type { RouteAttributes } from '@/types';
 import { LogOut, RotateCw, ShoppingCart } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import Logo from './Logo';
 
 export default ({ items }: { items: RouteAttributes[] }) => {
@@ -23,10 +25,9 @@ export default ({ items }: { items: RouteAttributes[] }) => {
     const { indentSheet, updateAll, allLoading } = useSheets();
     const { user, logout } = useAuth();
 
-    // Add Get Purchase item to the existing items
-    const allItems = [
+    const allItems = useMemo(() => [
         ...items,
-    ];
+    ], [items]);
 
     return (
         <Sidebar side="left" variant="inset" collapsible="offcanvas">
@@ -63,20 +64,21 @@ export default ({ items }: { items: RouteAttributes[] }) => {
                 <SidebarGroup>
                     <SidebarMenu>
                         {allItems
-                            .filter((item) =>
-                                item.gateKey ? user[item.gateKey] !== 'No Access' : true
-                            )
                             .map((item, i) => (
                                 <SidebarMenuItem key={i}>
                                     <SidebarMenuButton
-                                        className="transition-colors duration-200 rounded-md py-5 flex justify-between font-medium text-secondary-foreground"
+                                        className={cn(
+                                            "rounded-md py-5 flex justify-between font-medium opacity-100! visible!",
+                                            window.location.pathname.slice(1) === item.path
+                                                ? "text-white!"
+                                                : "text-black!"
+                                        )}
                                         onClick={() => navigate(item.path)}
                                         isActive={window.location.pathname.slice(1) === item.path}
                                     >
-                                        {' '}
-                                        <div className="flex gap-2 items-center">
-                                            {item.icon}
-                                            {item.name}
+                                        <div className="flex gap-2 items-center opacity-100! visible!">
+                                            <span className="opacity-100! visible!">{item.icon}</span>
+                                            <span className="opacity-100! visible!">{item.name}</span>
                                         </div>
                                         {item.notifications(indentSheet) !== 0 && (
                                             <span className="bg-destructive text-secondary  w-[1.3rem] h-[1.3rem] rounded-full text-xs grid place-items-center text-center">

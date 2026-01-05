@@ -37,50 +37,50 @@ export const SheetsProvider = ({ children }: { children: React.ReactNode }) => {
     const [inventoryLoading, setInventoryLoading] = useState(true);
     const [allLoading, setAllLoading] = useState(true);
 
-    function updateIndentSheet() {
+    async function updateIndentSheet() {
         setIndentLoading(true);
-        fetchSheet('INDENT').then((res) => {
-            setIndentSheet(res as IndentSheet[]);
-            setIndentLoading(false);
-        });
+        const res = await fetchSheet('INDENT');
+        setIndentSheet(res as IndentSheet[]);
+        setIndentLoading(false);
     }
-    function updateReceivedSheet() {
+    async function updateReceivedSheet() {
         setReceivedLoading(true);
-        fetchSheet('RECEIVED').then((res) => {
-            setReceivedSheet(res as ReceivedSheet[]);
-            setReceivedLoading(false);
-        });
+        const res = await fetchSheet('RECEIVED');
+        setReceivedSheet(res as ReceivedSheet[]);
+        setReceivedLoading(false);
     }
 
-    function updatePoMasterSheet() {
+    async function updatePoMasterSheet() {
         setPoMasterLoading(true);
-        fetchSheet('PO MASTER').then((res) => {
-            setPoMasterSheet(res as PoMasterSheet[]);
-            setPoMasterLoading(false);
-        });
+        const res = await fetchSheet('PO MASTER');
+        setPoMasterSheet(res as PoMasterSheet[]);
+        setPoMasterLoading(false);
     }
 
-    function updateInventorySheet() {
+    async function updateInventorySheet() {
         setInventoryLoading(true);
-        fetchSheet('INVENTORY').then((res) => {
-            setInventorySheet(res as InventorySheet[]);
-            setInventoryLoading(false);
-        });
+        const res = await fetchSheet('INVENTORY');
+        setInventorySheet(res as InventorySheet[]);
+        setInventoryLoading(false);
     }
-    function updateMasterSheet() {
-        fetchSheet('MASTER').then((res) => {
-            setMasterSheet(res as MasterSheet);
-        });
+    async function updateMasterSheet() {
+        const res = await fetchSheet('MASTER');
+        setMasterSheet(res as MasterSheet);
     }
 
-    function updateAll() {
+    async function updateAll() {
         setAllLoading(true);
-        updateMasterSheet();
-        updateReceivedSheet();
-        updateIndentSheet();
-        updatePoMasterSheet();
-        updateInventorySheet();
-        setAllLoading(false);
+        try {
+            await Promise.all([
+                updateMasterSheet(),
+                updateReceivedSheet(),
+                updateIndentSheet(),
+                updatePoMasterSheet(),
+                updateInventorySheet(),
+            ]);
+        } finally {
+            setAllLoading(false);
+        }
     }
 
     useEffect(() => {

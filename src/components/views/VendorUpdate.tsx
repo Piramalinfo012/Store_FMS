@@ -119,13 +119,16 @@ export default () => {
             await postToSheet(
                 indentSheet
                     .filter((s) => s.indentNumber === indentNo)
-                    .map((prev) => ({
-                        ...prev,
-                        quantity: editValues.quantity,
-                        uom: editValues.uom,
-                        vendorType: editValues.vendorType,
-                        lastUpdated: new Date().toISOString(),
-                    })),
+                    .map((prev) => {
+                        const { actual4, poNumber, poCopy, ...rest } = prev;
+                        return {
+                            ...rest,
+                            quantity: editValues.quantity,
+                            uom: editValues.uom,
+                            vendorType: editValues.vendorType,
+                            lastUpdated: new Date().toISOString(),
+                        };
+                    }),
                 'update'
             );
             toast.success(`Updated indent ${indentNo}`);
@@ -419,17 +422,21 @@ export default () => {
             await postToSheet(
                 indentSheet
                     .filter((s) => s.indentNumber === selectedIndent?.indentNo)
-                    .map((prev) => ({
-                        ...prev,
-                        actual2: new Date().toISOString(),
-                        vendorName1: values.vendorName,
-                        rate1: values.rate.toString(),
-                        paymentTerm1: values.paymentTerm,
-                        approvedVendorName: values.vendorName,
-                        approvedRate: values.rate,
-                        approvedPaymentTerm: values.paymentTerm,
-                        lastUpdated: new Date().toISOString(), // This ensures newly updated items appear at top
-                    })),
+                    .map((prev) => {
+                        const { actual4, poNumber, poCopy, ...rest } = prev;
+                        return {
+                            ...rest,
+                            actual2: new Date().toISOString(),
+                            actual3: new Date().toISOString(),
+                            vendorName1: values.vendorName,
+                            rate1: values.rate.toString(),
+                            paymentTerm1: values.paymentTerm,
+                            approvedVendorName: values.vendorName,
+                            approvedRate: values.rate,
+                            approvedPaymentTerm: values.paymentTerm,
+                            lastUpdated: new Date().toISOString(), // This ensures newly updated items appear at top
+                        };
+                    }),
                 'update'
             );
             toast.success(`Updated vendor of ${selectedIndent?.indentNo}`);
@@ -494,21 +501,24 @@ export default () => {
             await postToSheet(
                 indentSheet
                     .filter((s) => s.indentNumber === selectedIndent?.indentNo)
-                    .map((prev) => ({
-                        ...prev,
-                        actual2: new Date().toISOString(),
-                        vendorName1: values.vendors[0].vendorName,
-                        rate1: values.vendors[0].rate.toString(),
-                        paymentTerm1: values.vendors[0].paymentTerm,
-                        vendorName2: values.vendors[1].vendorName,
-                        rate2: values.vendors[1].rate.toString(),
-                        paymentTerm2: values.vendors[1].paymentTerm,
-                        vendorName3: values.vendors[2].vendorName,
-                        rate3: values.vendors[2].rate.toString(),
-                        paymentTerm3: values.vendors[2].paymentTerm,
-                        comparisonSheet: url,
-                        lastUpdated: new Date().toISOString(), // This ensures newly updated items appear at top
-                    })),
+                    .map((prev) => {
+                        const { actual4, poNumber, poCopy, ...rest } = prev;
+                        return {
+                            ...rest,
+                            actual2: new Date().toISOString(),
+                            vendorName1: values.vendors[0].vendorName,
+                            rate1: values.vendors[0].rate.toString(),
+                            paymentTerm1: values.vendors[0].paymentTerm,
+                            vendorName2: values.vendors[1].vendorName,
+                            rate2: values.vendors[1].rate.toString(),
+                            paymentTerm2: values.vendors[1].paymentTerm,
+                            vendorName3: values.vendors[2].vendorName,
+                            rate3: values.vendors[2].rate.toString(),
+                            paymentTerm3: values.vendors[2].paymentTerm,
+                            comparisonSheet: url,
+                            lastUpdated: new Date().toISOString(), // This ensures newly updated items appear at top
+                        };
+                    }),
                 'update'
             );
             toast.success(`Updated vendors of ${selectedIndent?.indentNo}`);
@@ -543,12 +553,15 @@ export default () => {
             await postToSheet(
                 indentSheet
                     .filter((s) => s.indentNumber === selectedHistory?.indentNo)
-                    .map((prev) => ({
-                        ...prev,
-                        rate1: values.rate.toString(),
-                        approvedRate: values.rate,
-                        lastUpdated: new Date().toISOString(), // This ensures updated items appear at top
-                    })),
+                    .map((prev) => {
+                        const { actual4, poNumber, poCopy, ...rest } = prev;
+                        return {
+                            ...rest,
+                            rate1: values.rate.toString(),
+                            approvedRate: values.rate,
+                            lastUpdated: new Date().toISOString(), // This ensures updated items appear at top
+                        };
+                    }),
                 'update'
             );
             toast.success(`Updated rate of ${selectedHistory?.indentNo}`);

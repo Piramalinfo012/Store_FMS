@@ -85,7 +85,6 @@ const routes: RouteAttributes[] = [
     },
     {
         path: 'create-indent',
-        gateKey: 'createIndent',
         name: 'Create Indent',
         icon: <ClipboardList size={20} />,
         element: <CreateIndent />,
@@ -102,7 +101,7 @@ const routes: RouteAttributes[] = [
                 (sheet) =>
                     sheet.planned1 !== '' &&
                     sheet.vendorType === '' &&
-                    sheet.indentType === 'Purchase'
+                    (sheet.indentType === 'Purchase')
             ).length,
     },
     {
