@@ -184,6 +184,7 @@ export default () => {
         { accessorKey: 'indenter', header: 'Indenter' },
         { accessorKey: 'department', header: 'Department' },
         { accessorKey: 'product', header: 'Item' },
+        { accessorKey: 'quantity', header: 'Quantity' },
         { accessorKey: 'date', header: 'Date' },
         {
             accessorKey: 'attachment',
