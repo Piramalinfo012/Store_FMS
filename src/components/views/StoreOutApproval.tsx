@@ -208,6 +208,7 @@ export default () => {
         { accessorKey: 'indentNo', header: 'Indent No.' },
         { accessorKey: 'indenter', header: 'Indenter' },
         { accessorKey: 'department', header: 'Department' },
+        { accessorKey: 'areaOfUse', header: 'Area Of Use' },
         { accessorKey: 'product', header: 'Item' },
         { accessorKey: 'uom', header: 'UOM' },
         { accessorKey: 'quantity', header: 'Issued Quantity' },
