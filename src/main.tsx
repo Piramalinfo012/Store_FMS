@@ -1,5 +1,6 @@
 import { WorkflowProvider, useWorkflow, purchaseWorkflowPaths } from '@/context/WorkflowContext';
 import '@/index.css';
+import '@/FormStyles.css';
 
 import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

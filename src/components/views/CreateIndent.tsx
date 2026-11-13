@@ -245,7 +245,7 @@ export default () => {
                             return (
                                 <div
                                     key={field.id}
-                                    className="flex flex-col gap-4 border p-4 rounded-lg"
+                                    className="form-product-panel flex flex-col gap-4 border p-4 rounded-lg"
                                 >
                                     <div className="flex justify-between">
                                         <h3 className="text-md font-semibold">

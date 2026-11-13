@@ -1,0 +1,27 @@
+/* Keep the form layout and field behavior; enhance only their surfaces. */
+form :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]), textarea, select, button[role=combobox]) {
+    border-width: 1px;
+    border-color: #d9d3e9;
+    border-radius: 10px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px #76628b06, inset 0 1px 0 #fff;
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+form :is(input, textarea, select, button[role=combobox]):not(:disabled):not([data-disabled]):not([aria-invalid=true]):hover { border-color: #bfaedb; background-color: #fefcff; }
+form :is(input, textarea, select, button[role=combobox]):not([aria-invalid=true]):focus-visible,
+form button[role=combobox][data-state=open]:not([aria-invalid=true]) {
+    border-color: #aa8ed4;
+    outline: none;
+    box-shadow: 0 0 0 3px #bba2e024;
+    background-color: #fff;
+}
+form :is(input, textarea, select, button[role=combobox])[aria-invalid=true] { border-color: #df839b; box-shadow: 0 0 0 3px #df839b16; }
+form :is(input, textarea, select, button[role=combobox]):disabled,
+form button[role=combobox][data-disabled] { border-color: #e5e1ee; background-color: #f8f7fb; box-shadow: none; }
+form input[type=file] { border-style: dashed; border-color: #cdbfe3; background-color: #fcfaff; }
+form input[type=file]::file-selector-button { background: #eee7fa; color: #8b6db7; border-right: 1px solid #e1d6ef; }
+form .form-product-panel { border: 1px solid #dcd2ec; border-radius: 15px; background: linear-gradient(135deg, #fcfaff, #fff 35%, #fcfefd); box-shadow: 0 3px 14px #8d73b009; transition: border-color 200ms ease, box-shadow 200ms ease; }
+form .form-product-panel:focus-within { border-color: #c3afdF; box-shadow: 0 4px 18px #9a7abb10; }
+@media (prefers-reduced-motion: reduce) {
+    form :is(input, textarea, select, button[role=combobox]), form .form-product-panel { transition: none; }
+}
