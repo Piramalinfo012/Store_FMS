@@ -13,9 +13,9 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useSheets } from '@/context/SheetsContext';
 import type { RouteAttributes } from '@/types';
-import { LogOut, RotateCw, ShoppingCart } from 'lucide-react';
+import { RotateCw, ShoppingCart } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Logo from './Logo';
@@ -23,9 +23,10 @@ import Logo from './Logo';
 export default ({ items }: { items: RouteAttributes[] }) => {
     // console.log("items", items);
     const navigate = useNavigate();
+    const { pathname } = useLocation();
     const { purchaseWorkflowHidden } = useWorkflow();
     const { indentSheet, updateAll, allLoading } = useSheets();
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
 
     const allItems = useMemo(() => [
         ...items.filter((item) => !purchaseWorkflowHidden || !purchaseWorkflowPaths.has(item.path)),
@@ -37,7 +38,7 @@ export default ({ items }: { items: RouteAttributes[] }) => {
 
     return (
         <Sidebar side="left" variant="inset" collapsible="offcanvas">
-            <SidebarHeader className="p-3 border-b-1">
+            <SidebarHeader className="store-nav-header p-3 border-b-1">
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2">
                         <Logo />
@@ -47,40 +48,29 @@ export default ({ items }: { items: RouteAttributes[] }) => {
                             <p className="text-sm">Management System</p>
                         </div>
                     </div>
-                    <Button variant="ghost" className="size-7" onClick={() => updateAll()} disabled={allLoading}>
-                        <RotateCw />
+                    <Button variant="ghost" className="size-7" aria-label="Refresh data" title="Refresh data" onClick={() => updateAll()} disabled={allLoading}>
+                        <RotateCw className={allLoading ? "animate-spin" : undefined} />
                     </Button>
                 </div>
                 <SidebarSeparator />
-                <div className="flex justify-between items-center px-3 text-xs text-muted-foreground">
-                    <div>
-                        <p>
-                            Name: <span className="font-semibold">{user.name}</span>
-                        </p>
-                        <p>
-                            Username: <span className="font-semibold">{user.username}</span>
-                        </p>
-                    </div>
-                    <Button variant="outline" className="size-8" onClick={() => logout()}>
-                        <LogOut />
-                    </Button>
-                </div>
             </SidebarHeader>
-            <SidebarContent className="py-1 border-b-1">
+            <SidebarContent className="store-nav-content py-1 border-b-1">
                 <SidebarGroup>
                     <SidebarMenu>
                         {allItems
                             .map((item, i) => (
                                 <SidebarMenuItem key={i}>
                                     <SidebarMenuButton
+                                        aria-label={item.name}
+                                        title={item.name}
                                         className={cn(
                                             "rounded-md py-5 flex justify-between font-medium opacity-100! visible!",
-                                            window.location.pathname.slice(1) === item.path
-                                                ? "text-white!"
-                                                : "text-black!"
+                                            pathname.slice(1) === item.path
+                                                ? "store-nav-active"
+                                                : "store-nav-idle"
                                         )}
                                         onClick={() => navigate(item.path)}
-                                        isActive={window.location.pathname.slice(1) === item.path}
+                                        isActive={pathname.slice(1) === item.path}
                                     >
                                         <div className="flex gap-2 items-center opacity-100! visible!">
                                             <span className="opacity-100! visible!">{item.icon}</span>
@@ -97,12 +87,9 @@ export default ({ items }: { items: RouteAttributes[] }) => {
                     </SidebarMenu>
                 </SidebarGroup>
             </SidebarContent>
-            <SidebarFooter>
+            <SidebarFooter className="store-nav-footer">
                 <div className="p-2 text-center text-sm">
-                    Powered by &#8208;{' '}
-                    <a className="text-primary" href="https://botivate.in" target="_blank">
-                        Botivate
-                    </a>
+                    Developed By <span className="text-primary">Deepak Sahu</span>
                 </div>
             </SidebarFooter>
         </Sidebar>

@@ -18,11 +18,11 @@
     padding: 9px; width: 44px; height: 44px; border-radius: 12px; background: #eaf1ff;
 }
 .store-dashboard > div:first-child > div > div:last-child { flex-wrap: wrap; }
-.store-dashboard > div:first-child button {
+.store-dashboard > div:first-child button:not(.store-profile-trigger) {
     border-radius: 11px; font-size: 13px; box-shadow: 0 3px 8px #6473b008;
     background: #ffffffcc; color: #6265ad; border: 1px solid #dedff4;
 }
-.store-dashboard > div:first-child button:hover { background: #eeeaff; border-color: #c4bcea; box-shadow: 0 5px 14px #8473bd15; }
+.store-dashboard > div:first-child button:not(.store-profile-trigger):hover { background: #eeeaff; border-color: #c4bcea; box-shadow: 0 5px 14px #8473bd15; }
 .store-dashboard button { transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease; }
 .store-dashboard button:active { transform: scale(.98); }
 .store-dashboard button:focus-visible { outline: 2px solid #a6a0df; outline-offset: 3px; }
@@ -71,7 +71,7 @@
 }
 .dashboard-panel:nth-child(2) { animation-delay: 480ms; }
 .store-dashboard h1 { font-size: 22px; }
-.store-dashboard > div:first-child button { height: 34px; font-size: 12px; }
+.store-dashboard > div:first-child button:not(.store-profile-trigger) { height: 34px; font-size: 12px; }
 .dashboard-panel { padding-top: 18px; padding-bottom: 18px; gap: 16px; }
 .dashboard-panel [data-slot=card-header], .dashboard-panel [data-slot=card-content] { padding-left: 20px; padding-right: 20px; }
 .dashboard-panel [data-slot=chart] { height: 240px; }

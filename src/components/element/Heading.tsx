@@ -1,3 +1,4 @@
+import AccountCard from './AccountCard';
 import type { ReactNode } from 'react';
 import { SidebarTrigger } from '../ui/sidebar';
 import { TabsList, TabsTrigger } from '../ui/tabs';
@@ -13,7 +14,7 @@ interface HeaderProps {
 export default ({ children, heading, subtext, actions, tabs = false }: HeaderProps) => {
     return (
         <div className="bg-gradient-to-br from-blue-100 via-purple-50 to-blue-50 rounded-md">
-            <div className="flex justify-between p-5">
+            <div className="store-heading-row flex justify-between p-5">
                 <div className="flex gap-2 items-center">
                     {children}
                     <div>
@@ -21,8 +22,9 @@ export default ({ children, heading, subtext, actions, tabs = false }: HeaderPro
                         <p className="text-muted-foreground text-sm">{subtext}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="store-heading-actions flex items-center gap-2">
                     {actions}
+                    <AccountCard />
                     <SidebarTrigger />
                 </div>
             </div>
