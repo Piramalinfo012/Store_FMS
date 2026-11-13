@@ -1,3 +1,4 @@
+import { useWorkflow } from '@/context/WorkflowContext';
 import { Eye, EyeClosed, MoreHorizontal, Pencil, ShieldUser, Trash, UserPlus } from 'lucide-react';
 import Heading from '../element/Heading';
 import { useEffect, useState } from 'react';
@@ -48,6 +49,7 @@ function camelToTitleCase(str: string): string {
 
 export default () => {
     const { user: currentUser } = useAuth();
+    const { purchaseWorkflowHidden, setPurchaseWorkflowHidden } = useWorkflow();
 
     const [tableData, setTableData] = useState<UsersTableData[]>([]);
     const [dataLoading, setDataLoading] = useState(true);
@@ -259,6 +261,23 @@ export default () => {
                     >
                         <ShieldUser size={50} className="text-primary" />
                     </Heading>
+
+                    <div className="mx-4 mb-4 flex items-center justify-between gap-4 rounded-md border p-4">
+                        <div>
+                            <p className="font-medium">Purchase order workflow</p>
+                            <p className="text-sm text-muted-foreground">Hide Pending POs, Create PO, PO History and Get Purchase. Approved purchase indents go directly to Receive Items.</p>
+                            <p className="text-xs text-muted-foreground">Saved in this browser. Show restores the normal workflow.</p>
+                        </div>
+                        <Button variant="outline" aria-pressed={purchaseWorkflowHidden} onClick={() => {
+                            try {
+                                setPurchaseWorkflowHidden(!purchaseWorkflowHidden);
+                                toast.success(purchaseWorkflowHidden ? 'Purchase workflow shown' : 'Purchase workflow hidden; PO steps skipped');
+                            } catch { toast.error('Could not save workflow setting'); }
+                        }}>
+                            {purchaseWorkflowHidden ? <Eye /> : <EyeClosed />}
+                            {purchaseWorkflowHidden ? 'Show' : 'Hide'}
+                        </Button>
+                    </div>
 
                     <DataTable
                         data={tableData}

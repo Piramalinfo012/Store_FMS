@@ -1,3 +1,4 @@
+import { useWorkflow, purchaseWorkflowPaths, canReceiveIndent } from '@/context/WorkflowContext';
 import {
     Sidebar,
     SidebarContent,
@@ -22,12 +23,17 @@ import Logo from './Logo';
 export default ({ items }: { items: RouteAttributes[] }) => {
     // console.log("items", items);
     const navigate = useNavigate();
+    const { purchaseWorkflowHidden } = useWorkflow();
     const { indentSheet, updateAll, allLoading } = useSheets();
     const { user, logout } = useAuth();
 
     const allItems = useMemo(() => [
-        ...items,
-    ], [items]);
+        ...items.filter((item) => !purchaseWorkflowHidden || !purchaseWorkflowPaths.has(item.path)),
+    ], [items, purchaseWorkflowHidden]);
+
+    const notificationCount = (item: RouteAttributes) => item.path === 'receive-items'
+        ? indentSheet.filter((indent) => canReceiveIndent(indent, purchaseWorkflowHidden)).length
+        : item.notifications(indentSheet);
 
     return (
         <Sidebar side="left" variant="inset" collapsible="offcanvas">
@@ -80,9 +86,9 @@ export default ({ items }: { items: RouteAttributes[] }) => {
                                             <span className="opacity-100! visible!">{item.icon}</span>
                                             <span className="opacity-100! visible!">{item.name}</span>
                                         </div>
-                                        {item.notifications(indentSheet) !== 0 && (
+                                        {notificationCount(item) !== 0 && (
                                             <span className="bg-destructive text-secondary  w-[1.3rem] h-[1.3rem] rounded-full text-xs grid place-items-center text-center">
-                                                {item.notifications(indentSheet)}
+                                                {notificationCount(item)}
                                             </span>
                                         )}
                                     </SidebarMenuButton>

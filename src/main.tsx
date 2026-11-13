@@ -1,3 +1,4 @@
+import { WorkflowProvider, useWorkflow, purchaseWorkflowPaths } from '@/context/WorkflowContext';
 import '@/index.css';
 
 import React, { StrictMode } from 'react';
@@ -16,7 +17,6 @@ import RateApproval from './components/views/RateApproval';
 import ReceiveItems from './components/views/ReceiveItems';
 import StoreOutApproval from './components/views/StoreOutApproval';
 import GetPurchase from './components/views/getPurchase';
-import License from './components/views/License';
 import TrainingVideo from './components/views/TrainingVideo';
 import type { RouteAttributes } from './types';
 import {
@@ -33,7 +33,6 @@ import {
     Package2,
     Store,
     VideoIcon,
-    KeyIcon,
 } from 'lucide-react';
 import type { UserPermissions } from './types/sheets';
 import Administration from './components/views/Administration';
@@ -53,11 +52,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function GatedRoute({
     children,
     identifier,
+    path,
 }: {
     children: React.ReactNode;
     identifier?: keyof UserPermissions;
+    path?: string;
 }) {
     const { user } = useAuth();
+    const { purchaseWorkflowHidden } = useWorkflow();
+    if (purchaseWorkflowHidden && path && purchaseWorkflowPaths.has(path)) return <Navigate to="/receive-items" replace />;
     console.log("user", user);
     console.log("identifier", identifier);
     if (!identifier) return children;
@@ -104,15 +107,15 @@ const routes: RouteAttributes[] = [
                     (sheet.indentType === 'Purchase')
             ).length,
     },
-    {
-        path: 'vendor-rate-update',
-        gateKey: 'updateVendorView',
-        name: 'Vendor Rate Update',
-        icon: <UserCheck size={20} />,
-        element: <VendorUpdate />,
-        notifications: (sheets) =>
-            sheets.filter((sheet) => sheet.planned2 !== '' && sheet.actual2 === '').length,
-    },
+    // {
+    //     path: 'vendor-rate-update',
+    //     gateKey: 'updateVendorView',
+    //     name: 'Vendor Rate Update',
+    //     icon: <UserCheck size={20} />,
+    //     element: <VendorUpdate />,
+    //     notifications: (sheets) =>
+    //         sheets.filter((sheet) => sheet.planned2 !== '' && sheet.actual2 === '').length,
+    // },
     // {
     //     path: 'three-party-approval',
     //     gateKey: 'threePartyApprovalView',
@@ -201,14 +204,6 @@ const routes: RouteAttributes[] = [
         element: <TrainingVideo />,
         notifications: () => 0,
     },
-    {
-        path: 'license',
-        name: 'License Agreement',
-        icon: <KeyIcon size={20} />,
-        element: <License />,
-        notifications: () => 0,
-
-    },
 ];
 
 createRoot(document.getElementById('root')!).render(
@@ -221,9 +216,9 @@ createRoot(document.getElementById('root')!).render(
                         path="/"
                         element={
                             <ProtectedRoute>
-                                <SheetsProvider>
+                                <WorkflowProvider><SheetsProvider>
                                     <App routes={routes} />
-                                </SheetsProvider>
+                                </SheetsProvider></WorkflowProvider>
                             </ProtectedRoute>
                         }
                     >
@@ -231,7 +226,7 @@ createRoot(document.getElementById('root')!).render(
                             // console.log("path", path);
                             return <Route
                                 path={path}
-                                element={<GatedRoute identifier={gateKey}>{element}</GatedRoute>}
+                                element={<GatedRoute identifier={gateKey} path={path}>{element}</GatedRoute>}
                             />
                         })}
                         <Route path="*" element={<Navigate to="/" replace />} />

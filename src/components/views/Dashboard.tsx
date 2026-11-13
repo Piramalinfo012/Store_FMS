@@ -1,3 +1,6 @@
+import GroupHeadPie from '../element/GroupHeadPie';
+import { Link } from 'react-router-dom';
+import './Dashboard.css';
 import Heading from '../element/Heading';
 import {
     CalendarIcon,
@@ -403,13 +406,7 @@ export default function UsersTable() {
             frequency: number;
         }[]
     >([]);
-    const [topVendorsData, setTopVendors] = useState<
-        {
-            name: string;
-            orders: number;
-            quantity: number;
-        }[]
-    >([]);
+    const [groupHeads, setGroupHeads] = useState<ReturnType<typeof analyzeData>['groupHeads']>([]);
 
     // Items
     const [indent, setIndent] = useState({ count: 0, quantity: 0 });
@@ -425,10 +422,10 @@ export default function UsersTable() {
     const [allProducts, setAllProducts] = useState<string[]>([]);
 
     useEffect(() => {
-        setAllVendors(Array.from(new Set(indentSheet.map((item) => item.approvedVendorName))));
-        setAllProducts(Array.from(new Set(indentSheet.map((item) => item.productName))));
+        setAllVendors(Array.from(new Set([...indentSheet.map((item) => item.approvedVendorName), ...receivedSheet.map((item) => item.vendor)].map((name) => (name ?? '').trim()).filter(Boolean))).sort());
+        setAllProducts(Array.from(new Set(indentSheet.map((item) => (item.productName ?? '').trim()).filter(Boolean))).sort());
         const {
-            topVendors,
+            groupHeads,
             topProducts,
             issuedIndentCount,
             approvedIndentCount,
@@ -449,7 +446,7 @@ export default function UsersTable() {
         setChartData(
             topProducts.map((p) => ({ frequency: p.freq, quantity: p.quantity, name: p.name }))
         );
-        setTopVendors(topVendors);
+        setGroupHeads(groupHeads);
         setIndent({ quantity: totalApprovedQuantity, count: approvedIndentCount });
         console.log(totalApprovedQuantity, approvedIndentCount);
         setPurchase({ quantity: totalPurchasedQuantity, count: receivedPurchaseCount });
@@ -464,10 +461,10 @@ export default function UsersTable() {
     } satisfies ChartConfig;
 
     return (
-        <div>
+        <div className="store-dashboard">
             <Heading
                 heading="Dashboard"
-                subtext="View you analytics"
+                subtext="Your inventory and purchasing at a glance"
                 actions={
                     <>
                         <AddVendor onComplete={() => updateAll()} />
@@ -479,8 +476,8 @@ export default function UsersTable() {
                 <LayoutDashboard size={50} className="text-primary" />
             </Heading>
 
-            <div className="grid gap-3 m-3">
-                <div className="gap-3 grid grid-cols-2 md:grid-cols-4">
+            <div className="dashboard-content">
+                <div className="dashboard-filters">
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button
@@ -497,7 +494,7 @@ export default function UsersTable() {
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
-                            <Calendar mode="single" selected={startDate} onSelect={setStartDate} />
+                            <Calendar mode="single" selected={startDate} onSelect={setStartDate} disabled={endDate ? { after: endDate } : undefined} />
                         </PopoverContent>
                     </Popover>
                     <Popover>
@@ -508,11 +505,11 @@ export default function UsersTable() {
                                 className="data-[empty=true]:text-muted-foreground w-full min-w-0 justify-start text-left font-normal"
                             >
                                 <CalendarIcon />
-                                {endDate ? format(endDate, 'PPP') : <span>Pick a end date</span>}
+                                {endDate ? format(endDate, 'PPP') : <span>Pick an end date</span>}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
-                            <Calendar mode="single" selected={endDate} onSelect={setEndDate} />
+                            <Calendar mode="single" selected={endDate} onSelect={setEndDate} disabled={startDate ? { before: startDate } : undefined} />
                         </PopoverContent>
                     </Popover>
                     <ComboBox
@@ -531,8 +528,21 @@ export default function UsersTable() {
                     />
                 </div>
 
-                <div className="grid md:grid-cols-4 gap-3">
+                {(startDate || endDate || filteredVendors.length > 0 || filteredProducts.length > 0) && (
+                    <div className="flex items-center justify-between gap-3 px-1 text-xs text-muted-foreground">
+                        <span>Filters applied to indent, purchase and issue analytics.</span>
+                        <Button variant="ghost" size="sm" onClick={() => {
+                            setStartDate(undefined);
+                            setEndDate(undefined);
+                            setFilteredVendors([]);
+                            setFilteredProducts([]);
+                        }}>Clear filters</Button>
+                    </div>
+                )}
+
+                <div className="dashboard-metrics">
                     <Card className="bg-gradient-to-br from-transparent to-blue-500/10">
+                        <Link className="dashboard-metric-link" to="/approve-indent" aria-label="View approved indents" />
                         <CardContent>
                             <div className="text-blue-500 flex justify-between">
                                 <p className="font-semibold">Total Approved Indents</p>
@@ -546,6 +556,7 @@ export default function UsersTable() {
                         </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-transparent to-green-500/10">
+                        <Link className="dashboard-metric-link" to="/receive-items" aria-label="View purchases and received items" />
                         <CardContent>
                             <div className="text-green-500 flex justify-between">
                                 <p className="font-semibold">Total Purchases</p>
@@ -559,6 +570,7 @@ export default function UsersTable() {
                         </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-transparent to-orange-500/10">
+                        <Link className="dashboard-metric-link" to="/store-out-approval" aria-label="View issued items and store out approvals" />
                         <CardContent>
                             <div className="text-orange-500 flex justify-between">
                                 <p className="font-semibold">Total Issued</p>
@@ -573,6 +585,7 @@ export default function UsersTable() {
                         </CardContent>
                     </Card>
                     <Card className="bg-gradient-to-br from-transparent to-yellow-500/10 text-yellow-500 ">
+                        <Link className="dashboard-metric-link" to="/inventory" aria-label="View inventory and stock levels" />
                         <CardContent>
                             <div className="flex justify-between">
                                 <p className="font-semibold">Out of Stock</p>
@@ -589,13 +602,14 @@ export default function UsersTable() {
                         </CardContent>
                     </Card>
                 </div>
-                <div className="flex gap-3 flex-wrap">
-                    <Card className="w-[55%] md:min-w-150 flex-grow">
+                <div className="dashboard-insights">
+                    <Card className="dashboard-panel">
                         <CardHeader>
                             <CardTitle className="text-xl">Top Purchased Products</CardTitle>
+                            <p className="dashboard-caption">Most frequently purchased products</p>
                         </CardHeader>
                         <CardContent>
-                            <ChartContainer className="max-h-80 w-full" config={chartConfig}>
+                            <ChartContainer className="h-[300px] max-h-80 w-full" config={chartConfig}>
                                 <BarChart
                                     accessibilityLayer
                                     data={chartData}
@@ -612,10 +626,10 @@ export default function UsersTable() {
                                             x2="1"
                                             y2="0"
                                         >
-                                            <stop offset="100%" stopColor="#3b82f6" />{' '}
-                                            {/* Tailwind blue-500 */}
                                             <stop offset="0%" stopColor="#2563eb" />{' '}
-                                            {/* Tailwind blue-600 */}
+                                            {/* Tailwind blue-500 */}
+                                            <stop offset="100%" stopColor="#60a5fa" />{' '}
+                                            {/* Tailwind blue-400 */}
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid horizontal={false} />
@@ -637,7 +651,8 @@ export default function UsersTable() {
                                         dataKey="frequency"
                                         layout="vertical"
                                         fill="url(#barGradient)"
-                                        radius={4}
+                                        radius={[0, 6, 6, 0]}
+                                        maxBarSize={44}
                                     >
                                         <LabelList
                                             dataKey="name"
@@ -658,20 +673,13 @@ export default function UsersTable() {
                             </ChartContainer>
                         </CardContent>
                     </Card>
-                    <Card className="flex-grow min-w-60 w-[40%]">
+                    <Card className="dashboard-panel">
                         <CardHeader>
-                            <CardTitle className="text-xl">Top Vendors</CardTitle>
+                            <CardTitle className="text-xl">Products by Group Head</CardTitle>
+                            <p className="dashboard-caption">Purchased quantity by group ? select a slice to explore products</p>
                         </CardHeader>
-                        <CardContent className="text-base grid gap-2">
-                            {topVendorsData.map((vendor, i) => (
-                                <div className="flex justify-between" key={i}>
-                                    <p className="font-semibold text-md">{vendor.name}</p>
-                                    <div className="flex gap-5">
-                                        <p>{vendor.orders} Orders</p>
-                                        <p>{vendor.quantity} Items</p>
-                                    </div>
-                                </div>
-                            ))}
+                        <CardContent>
+                            <GroupHeadPie data={groupHeads} />
                         </CardContent>
                     </Card>
                 </div>

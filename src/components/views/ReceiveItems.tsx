@@ -1,3 +1,4 @@
+import { canReceiveIndent, useWorkflow } from '@/context/WorkflowContext';
 import { useSheets } from '@/context/SheetsContext';
 import type { ColumnDef, Row } from '@tanstack/react-table';
 import { useEffect, useState } from 'react';
@@ -66,6 +67,7 @@ interface HistoryData {
 export default () => {
     const { indentSheet, receivedSheet, updateAll, indentLoading, receivedLoading } = useSheets();
     const { user } = useAuth();
+    const { purchaseWorkflowHidden } = useWorkflow();
 
     const [tableData, setTableData] = useState<RecieveItemsData[]>([]);
     const [historyData, setHistoryData] = useState<HistoryData[]>([]);
@@ -75,7 +77,7 @@ export default () => {
     useEffect(() => {
         setTableData(
             indentSheet
-                .filter((i) => i.planned5 !== '' && i.actual5 === '')
+                .filter((i) => canReceiveIndent(i, purchaseWorkflowHidden))
                 .map((i) => ({
                     indentNumber: i.indentNumber,
                     poNumber: i.poNumber,
@@ -83,11 +85,11 @@ export default () => {
                     poCopy: i.poCopy,
                     vendor: i.approvedVendorName,
                     quantity: i.approvedQuantity,
-                    poDate: i.actual4,
+                    poDate: i.actual4 || i.actual1,
                     product: i.productName,
                 }))
         );
-    }, [indentSheet]);
+    }, [indentSheet, purchaseWorkflowHidden]);
 
     useEffect(() => {
         setHistoryData(

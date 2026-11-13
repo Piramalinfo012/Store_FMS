@@ -19,17 +19,20 @@ export function analyzeData(
 ) {
     const start = filters.startDate ? new Date(filters.startDate) : null;
     const end = filters.endDate ? new Date(filters.endDate) : null;
+    start?.setHours(0, 0, 0, 0);
+    end?.setHours(23, 59, 59, 999);
 
-    const vendorSet = new Set(filters.vendors ?? []);
-    const productSet = new Set(filters.products ?? []);
+    const normalize = (value?: string) => (value ?? '').trim().toLowerCase();
+    const vendorSet = new Set((filters.vendors ?? []).map(normalize));
+    const productSet = new Set((filters.products ?? []).map(normalize));
 
     const isWithinDate = (dateStr: string) => {
         const d = new Date(dateStr);
         return d.toString() !== 'Invalid Date' && (!start || d >= start) && (!end || d <= end);
     };
 
-    const isVendorMatch = (name: string) => vendorSet.size === 0 || vendorSet.has(name);
-    const isProductMatch = (name: string) => productSet.size === 0 || productSet.has(name);
+    const isVendorMatch = (name: string) => vendorSet.size === 0 || vendorSet.has(normalize(name));
+    const isProductMatch = (name: string) => productSet.size === 0 || productSet.has(normalize(name));
 
     // Map from indentNumber to productName
     const indentProductMap = new Map<string, string>();
@@ -41,8 +44,9 @@ export function analyzeData(
     // Approved Indents
     const approvedIndents = indentSheet.filter(
         (i) =>
-            ["three party", "regular"].includes(i.vendorType.toLowerCase()) &&
-            isWithinDate(i.timestamp) &&
+            ["three party", "regular", "regular vendor", "new vendor"].includes(normalize(i.vendorType)) &&
+            isWithinDate(i.actual1 || i.timestamp) &&
+            isVendorMatch(i.approvedVendorName) &&
             isProductMatch(i.productName)
     );
 
@@ -58,7 +62,7 @@ export function analyzeData(
         return (
             isWithinDate(r.timestamp) &&
             isVendorMatch(r.vendor) &&
-            (!productName || isProductMatch(productName))
+            isProductMatch(productName ?? '')
         );
     });
 
@@ -71,8 +75,9 @@ export function analyzeData(
     // Issued Items
     const issuedIndents = indentSheet.filter(
         (i) =>
-            i.issueStatus.toLowerCase() === 'issued' &&
-            isWithinDate(i.timestamp) &&
+            ['issued', 'approved'].includes(normalize(i.issueStatus)) &&
+            isWithinDate(i.actual6 || i.timestamp) &&
+            isVendorMatch(i.approvedVendorName) &&
             isProductMatch(i.productName)
     );
 
@@ -85,8 +90,7 @@ export function analyzeData(
     // Top 10 Products
     const productFrequencyMap = new Map<string, { freq: number; quantity: number }>();
 
-    for (const r of receivedSheet) {
-        if (!isWithinDate(r.timestamp)) continue;
+    for (const r of receivedPurchases) {
         const productName = indentProductMap.get(r.indentNumber);
         if (!productName || !isProductMatch(productName)) continue;
 
@@ -107,8 +111,7 @@ export function analyzeData(
     // Top 10 Vendors
     const vendorMap = new Map<string, { orders: number; quantity: number }>();
 
-    for (const r of receivedSheet) {
-        if (!isWithinDate(r.timestamp) || !isVendorMatch(r.vendor)) continue;
+    for (const r of receivedPurchases) {
 
         if (!vendorMap.has(r.vendor)) {
             vendorMap.set(r.vendor, { orders: 0, quantity: 0 });
@@ -123,6 +126,24 @@ export function analyzeData(
         .slice(0, 10)
         .map(([name, data]) => ({ name, ...data }));
 
+    const indentMap = new Map(indentSheet.map((indent) => [indent.indentNumber, indent]));
+    const groups = new Map<string, { quantity: number; products: Map<string, number> }>();
+    for (const receipt of receivedPurchases) {
+        const indent = indentMap.get(receipt.indentNumber);
+        const name = indent?.groupHead?.trim() || 'Unassigned';
+        const product = indent?.productName?.trim() || 'Unknown product';
+        const quantity = Number(receipt.receivedQuantity) || 0;
+        if (quantity <= 0) continue;
+        if (!groups.has(name)) groups.set(name, { quantity: 0, products: new Map() });
+        const group = groups.get(name)!;
+        group.quantity += quantity;
+        group.products.set(product, (group.products.get(product) ?? 0) + quantity);
+    }
+    const groupHeads = [...groups].map(([name, group]) => ({
+        name, quantity: group.quantity,
+        products: [...group.products].map(([name, quantity]) => ({ name, quantity })),
+    })).sort((a, b) => b.quantity - a.quantity);
+
     // -------------------------------
     return {
         approvedIndentCount: approvedIndents.length,
@@ -133,5 +154,6 @@ export function analyzeData(
         totalIssuedQuantity,
         topProducts,
         topVendors,
+        groupHeads,
     };
 }
