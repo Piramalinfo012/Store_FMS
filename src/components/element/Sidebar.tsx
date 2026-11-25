@@ -1,4 +1,4 @@
-import { useWorkflow, purchaseWorkflowPaths, canReceiveIndent } from '@/context/WorkflowContext';
+import { useWorkflow, purchaseWorkflowPaths, canReceiveIndent, canInitiatePurchase } from '@/context/WorkflowContext';
 import {
     Sidebar,
     SidebarContent,
@@ -9,6 +9,7 @@ import {
     SidebarHeader,
     SidebarFooter,
     SidebarSeparator,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/context/AuthContext';
 import { useSheets } from '@/context/SheetsContext';
@@ -25,16 +26,31 @@ export default ({ items }: { items: RouteAttributes[] }) => {
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const { purchaseWorkflowHidden } = useWorkflow();
-    const { indentSheet, updateAll, allLoading } = useSheets();
+    const { indentSheet, iniciateSheet, updateAll, allLoading } = useSheets();
     const { user } = useAuth();
+    const { setOpenMobile } = useSidebar();
 
-    const allItems = useMemo(() => [
-        ...items.filter((item) => !purchaseWorkflowHidden || !purchaseWorkflowPaths.has(item.path)),
-    ], [items, purchaseWorkflowHidden]);
+    const allItems = useMemo(
+        () =>
+            items.filter((item) => {
+                if (purchaseWorkflowHidden && purchaseWorkflowPaths.has(item.path)) return false;
+                if (item.gateKey && !user?.[item.gateKey]) return false;
+                return true;
+            }),
+        [items, purchaseWorkflowHidden, user]
+    );
 
-    const notificationCount = (item: RouteAttributes) => item.path === 'receive-items'
-        ? indentSheet.filter((indent) => canReceiveIndent(indent, purchaseWorkflowHidden)).length
-        : item.notifications(indentSheet);
+    const notificationCount = (item: RouteAttributes) => {
+        if (item.path === 'receive-items') {
+            return indentSheet.filter((indent) =>
+                canReceiveIndent(indent, purchaseWorkflowHidden, iniciateSheet)
+            ).length;
+        }
+        if (item.path === 'initiate-purchase') {
+            return indentSheet.filter((indent) => canInitiatePurchase(indent, iniciateSheet)).length;
+        }
+        return item.notifications(indentSheet);
+    };
 
     return (
         <Sidebar side="left" variant="inset" collapsible="offcanvas">
@@ -69,7 +85,10 @@ export default ({ items }: { items: RouteAttributes[] }) => {
                                                 ? "store-nav-active"
                                                 : "store-nav-idle"
                                         )}
-                                        onClick={() => navigate(item.path)}
+                                        onClick={() => {
+                                            navigate(item.path);
+                                            setOpenMobile(false);
+                                        }}
                                         isActive={pathname.slice(1) === item.path}
                                     >
                                         <div className="flex gap-2 items-center opacity-100! visible!">

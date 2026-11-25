@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSheets } from '@/context/SheetsContext';
-import { useWorkflow, purchaseWorkflowPaths, canReceiveIndent } from '@/context/WorkflowContext';
+import { useWorkflow, purchaseWorkflowPaths, canReceiveIndent, canInitiatePurchase } from '@/context/WorkflowContext';
 import { useSidebar } from '@/components/ui/sidebar';
 import type { RouteAttributes } from '@/types';
 import { cn } from '@/lib/utils';
@@ -12,7 +12,7 @@ export default function MobileBottomNav({ items }: { items: RouteAttributes[] })
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const { user } = useAuth();
-    const { indentSheet } = useSheets();
+    const { indentSheet, iniciateSheet } = useSheets();
     const { purchaseWorkflowHidden } = useWorkflow();
     const { toggleSidebar } = useSidebar();
 
@@ -29,10 +29,17 @@ export default function MobileBottomNav({ items }: { items: RouteAttributes[] })
     // Pick top 4 primary tabs for the bottom bar; remaining items are accessible via "More"
     const primaryItems = useMemo(() => visibleItems.slice(0, 4), [visibleItems]);
 
-    const getNotificationCount = (item: RouteAttributes) =>
-        item.path === 'receive-items'
-            ? indentSheet.filter((indent) => canReceiveIndent(indent, purchaseWorkflowHidden)).length
-            : item.notifications(indentSheet);
+    const getNotificationCount = (item: RouteAttributes) => {
+        if (item.path === 'receive-items') {
+            return indentSheet.filter((indent) =>
+                canReceiveIndent(indent, purchaseWorkflowHidden, iniciateSheet)
+            ).length;
+        }
+        if (item.path === 'initiate-purchase') {
+            return indentSheet.filter((indent) => canInitiatePurchase(indent, iniciateSheet)).length;
+        }
+        return item.notifications(indentSheet);
+    };
 
     const currentPath = pathname.slice(1);
 

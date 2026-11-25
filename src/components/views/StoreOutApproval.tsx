@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
     Dialog,
     DialogClose,
@@ -26,7 +27,7 @@ import { PackageCheck } from 'lucide-react';
 import { Tabs, TabsContent } from '../ui/tabs';
 import { useAuth } from '@/context/AuthContext';
 import Heading from '../element/Heading';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatDateTime } from '@/lib/utils';
 import { Pill } from '../ui/pill';
 
 interface StoreOutTableData {
@@ -63,6 +64,20 @@ export default () => {
     const [historyData, setHistoryData] = useState<HistoryData[]>([]);
     const [selectedIndent, setSelectedIndent] = useState<StoreOutTableData | null>(null);
     const [rejecting, setRejecting] = useState(false);
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    useEffect(() => {
+        const targetIndent = searchParams.get('indent')?.trim();
+        if (!targetIndent || tableData.length === 0) return;
+        const matched = tableData.find(
+            (row) => row.indentNo.toLowerCase() === targetIndent.toLowerCase()
+        );
+        if (matched) {
+            setSelectedIndent(matched);
+            setOpenDialog(true);
+            setSearchParams({}, { replace: true });
+        }
+    }, [tableData, searchParams, setSearchParams]);
 
     // Fetching table data
     useEffect(() => {
@@ -79,7 +94,7 @@ export default () => {
                     indenter: sheet.indenterName,
                     department: sheet.department,
                     product: sheet.productName,
-                    date: formatDate(new Date(sheet.timestamp)),
+                    date: formatDateTime(new Date(sheet.timestamp)),
                     areaOfUse: sheet.areaOfUse,
                     quantity: sheet.quantity,
                     uom: sheet.uom,
@@ -101,7 +116,7 @@ export default () => {
                     indenter: sheet.indenterName,
                     department: sheet.department,
                     product: sheet.productName,
-                    date: formatDate(new Date(sheet.timestamp)),
+                    date: formatDateTime(new Date(sheet.timestamp)),
                     areaOfUse: sheet.areaOfUse,
                     quantity: sheet.issuedQuantity,
                     requestedQuantity: sheet.quantity,
@@ -180,12 +195,12 @@ export default () => {
                 },
             ]
             : []),
+        { accessorKey: 'date', header: 'Indent Timestamp' },
         { accessorKey: 'indentNo', header: 'Indent No.' },
         { accessorKey: 'indenter', header: 'Indenter' },
         { accessorKey: 'department', header: 'Department' },
         { accessorKey: 'product', header: 'Item' },
         { accessorKey: 'quantity', header: 'Quantity' },
-        { accessorKey: 'date', header: 'Date' },
         {
             accessorKey: 'attachment',
             header: 'Attachment',
@@ -213,7 +228,7 @@ export default () => {
         { accessorKey: 'uom', header: 'UOM' },
         { accessorKey: 'quantity', header: 'Issued Quantity' },
         { accessorKey: 'requestedQuantity', header: 'Requested Quantity' },
-        { accessorKey: 'date', header: 'Requuest Date' },
+        { accessorKey: 'date', header: 'Indent Timestamp' },
         { accessorKey: 'approvalDate', header: 'Approval Date' },
         {
             accessorKey: 'issuedStatus',

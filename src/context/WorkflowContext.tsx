@@ -4,10 +4,46 @@ import type { IndentSheet } from '@/types';
 const storageKey = 'store-fms:hide-purchase-workflow';
 export const purchaseWorkflowPaths = new Set(['pending-pos', 'create-po', 'po-history', 'get-purchase']);
 
-export function canReceiveIndent(indent: IndentSheet, hidden: boolean) {
+export function canReceiveIndent(
+    indent: IndentSheet,
+    hidden: boolean,
+    iniciateSheet?: { indentNo: string; productName: string }[]
+) {
     if (indent.actual5) return false;
-    return Boolean(indent.planned5) || (hidden && indent.indentType === 'Purchase'
-        && Boolean(indent.actual1) && ['Regular', 'Regular Vendor', 'New Vendor'].includes(indent.vendorType));
+    const isInitiated = Boolean(
+        iniciateSheet?.some(
+            (r) => r.indentNo === indent.indentNumber && r.productName === indent.productName
+        )
+    );
+    return (
+        Boolean(indent.planned5) ||
+        isInitiated ||
+        (hidden &&
+            indent.indentType === 'Purchase' &&
+            Boolean(indent.actual1) &&
+            ['Regular', 'Regular Vendor', 'New Vendor'].includes(indent.vendorType))
+    );
+}
+
+const APPROVED_STATUSES = new Set(['Approve', 'Approved', 'Regular', 'Regular Vendor', 'New Vendor']);
+
+export function canInitiatePurchase(
+    indent: IndentSheet,
+    iniciateSheet?: { indentNo: string; productName: string }[]
+): boolean {
+    if (indent.indentType !== 'Purchase') return false;
+    if (!indent.actual3 || indent.actual4 || indent.actual5) return false;
+    const status = (indent.approvalStatus || indent.vendorType || '').trim();
+    if (!APPROVED_STATUSES.has(status)) return false;
+    if (
+        iniciateSheet &&
+        iniciateSheet.some(
+            (r) => r.indentNo === indent.indentNumber && r.productName === indent.productName
+        )
+    ) {
+        return false;
+    }
+    return true;
 }
 
 const WorkflowContext = createContext({ purchaseWorkflowHidden: false, setPurchaseWorkflowHidden: (_hidden: boolean) => {} });

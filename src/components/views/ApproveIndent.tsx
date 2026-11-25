@@ -25,7 +25,8 @@ import { toast } from 'sonner';
 import { PuffLoader as Loader } from 'react-spinners';
 import { Tabs, TabsContent } from '../ui/tabs';
 import { CheckCircle2, ClipboardCheck, Package, PenSquare, ShieldCheck, UserPlus, XCircle } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatDateTime } from '@/lib/utils';
+import { sendIndentApprovedWhatsAppNotifications } from '@/lib/whatsapp';
 import { useAuth } from '@/context/AuthContext';
 import Heading from '../element/Heading';
 import { Pill } from '../ui/pill';
@@ -95,7 +96,7 @@ export default () => {
                     vendorType: statuses.includes(sheet.vendorType)
                         ? (sheet.vendorType as ApproveTableData['vendorType'])
                         : 'Pending',
-                    date: formatDate(new Date(sheet.timestamp)),
+                    date: formatDateTime(new Date(sheet.timestamp)),
                 }))
         );
         setHistoryData(
@@ -115,7 +116,7 @@ export default () => {
                     vendorType: (sheet.approvalStatus || sheet.vendorType) as HistoryData['vendorType'],
                     uom: sheet.unit || sheet.uom,
                     specifications: sheet.specifications || '',
-                    date: formatDate(new Date(sheet.timestamp)),
+                    date: formatDateTime(new Date(sheet.timestamp)),
                     approvedDate: formatDate(new Date(sheet.actual3)),
                     // lastUpdated: sheet.lastUpdated,
                 }))
@@ -234,6 +235,7 @@ export default () => {
                 },
             ]
             : []),
+        { accessorKey: 'date', header: 'Timestamp' },
         { accessorKey: 'indentNo', header: 'Indent No.' },
         { accessorKey: 'indenter', header: 'Indenter' },
         { accessorKey: 'department', header: 'Department' },
@@ -307,7 +309,6 @@ export default () => {
                 );
             },
         },
-        { accessorKey: 'date', header: 'Date' },
     ];
 
     const historyColumns: ColumnDef<HistoryData>[] = [
@@ -435,7 +436,7 @@ export default () => {
                 );
             },
         },
-        { accessorKey: 'date', header: 'Request Date' },
+        { accessorKey: 'date', header: 'Request Timestamp' },
         { accessorKey: 'approvedDate', header: 'Approval Date' },
         ...(user.indentApprovalAction
             ? [
@@ -520,6 +521,29 @@ export default () => {
                 'update'
             );
             toast.success(`Updated approval status of ${selectedIndent?.indentNo}`);
+
+            if (values.approval !== 'Reject' && selectedIndent) {
+                sendIndentApprovedWhatsAppNotifications({
+                    indentNumber: selectedIndent.indentNo,
+                    indenterName: selectedIndent.indenter,
+                    department: selectedIndent.department,
+                    productName: selectedIndent.product,
+                    approvedQuantity: Number(values.approvedQuantity ?? selectedIndent.quantity),
+                    unit: values.unit || selectedIndent.uom,
+                    approvedBy: user?.name || user?.username,
+                    remark: values.rmark,
+                }).then((waRes) => {
+                    if (!waRes.skipped) {
+                        if (waRes.sent > 0) {
+                            toast.success(`WhatsApp notification sent to ${waRes.sent} recipient(s)`);
+                        }
+                        if (waRes.failed > 0) {
+                            toast.error(`WhatsApp failed for ${waRes.failed} recipient(s)`);
+                        }
+                    }
+                });
+            }
+
             setOpenDialog(false);
             form.reset();
             setTimeout(() => updateIndentSheet(), 1000);

@@ -1,11 +1,11 @@
-import { WorkflowProvider, useWorkflow, purchaseWorkflowPaths } from '@/context/WorkflowContext';
+import { WorkflowProvider, useWorkflow, purchaseWorkflowPaths, canInitiatePurchase } from '@/context/WorkflowContext';
 import '@/index.css';
 import '@/FormStyles.css';
 
-import React, { StrictMode } from 'react';
+import React, { Component, StrictMode, type ErrorInfo, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AuthProvider, useAuth } from '@/context/AuthContext.tsx';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import Login from './components/views/Login';
 import CreateIndent from './components/views/CreateIndent';
@@ -18,6 +18,7 @@ import VendorUpdate from './components/views/VendorUpdate';
 import RateApproval from './components/views/RateApproval';
 import ReceiveItems from './components/views/ReceiveItems';
 import StoreOutApproval from './components/views/StoreOutApproval';
+import Handover from './components/views/Handover';
 import GetPurchase from './components/views/getPurchase';
 import TrainingVideo from './components/views/TrainingVideo';
 import type { RouteAttributes } from './types';
@@ -29,6 +30,7 @@ import {
     ClipboardCheck,
     Truck,
     PackageCheck,
+    Handshake,
     ShieldUser,
     FilePlus2,
     ListTodo,
@@ -46,10 +48,54 @@ import Order from './components/views/Order';
 import Inventory from './components/views/Inventory';
 
 
+class AppErrorBoundary extends Component<
+    { children: ReactNode },
+    { hasError: boolean }
+> {
+    constructor(props: { children: ReactNode }) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError(): { hasError: boolean } {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error: Error, info: ErrorInfo) {
+        console.error('AppErrorBoundary caught error:', error, info);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="min-h-dvh flex flex-col items-center justify-center gap-3 bg-[#FAF8F4] p-6 text-center text-[#1F2621]">
+                    <p className="text-base font-semibold">Something went wrong while rendering the page.</p>
+                    <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="rounded-lg bg-[#556B5B] px-4 py-2 text-sm font-medium text-white hover:bg-[#4F6354]"
+                    >
+                        Reload Page
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { loggedIn, loading } = useAuth();
-    if (loading) return <div key="loading"><Loading /></div>;
-    return loggedIn ? <div key="app" className="contents">{children}</div> : <Navigate to="/login" />;
+    const location = useLocation();
+    if (loading) return <Loading />;
+    if (!loggedIn) {
+        const target = `${location.pathname}${location.search}`;
+        if (target && target !== '/login') {
+            sessionStorage.setItem('redirectAfterLogin', target);
+        }
+        return <Navigate to="/login" />;
+    }
+    return <>{children}</>;
 }
 
 function GatedRoute({
@@ -91,6 +137,7 @@ const routes: RouteAttributes[] = [
     },
     {
         path: 'create-indent',
+        gateKey: 'createIndent',
         name: 'Create Indent',
         icon: <ClipboardList size={20} />,
         element: <CreateIndent />,
@@ -116,8 +163,7 @@ const routes: RouteAttributes[] = [
         name: 'Initiate Purchase',
         icon: <ShoppingCart size={20} />,
         element: <InitiatePurchase />,
-        notifications: (sheets) =>
-            sheets.filter((sheet) => (sheet.actual3 !== '' || sheet.actual1 !== '') && sheet.actual4 === '' && sheet.indentType === 'Purchase' && sheet.vendorType !== 'Reject').length,
+        notifications: (sheets) => sheets.filter((sheet) => canInitiatePurchase(sheet)).length,
     },
     // {
     //     path: 'vendor-rate-update',
@@ -143,40 +189,6 @@ const routes: RouteAttributes[] = [
     //         ).length,
     // },
     {
-        path: 'pending-pos',
-        gateKey: 'pendingIndentsView',
-        name: 'Pending POs',
-        icon: <ListTodo size={20} />,
-        element: <PendingIndents />,
-        notifications: (sheets) =>
-            sheets.filter((sheet) => sheet.planned4 !== '' && sheet.actual4 === '').length,
-    },
-    {
-        path: 'create-po',
-        gateKey: 'createPo',
-        name: 'Create PO',
-        icon: <FilePlus2 size={20} />,
-        element: <CreatePO />,
-        notifications: () => 0,
-    },
-
-    {
-        path: 'po-history',
-        gateKey: 'ordersView',
-        name: 'PO History',
-        icon: <Package2 size={20} />,
-        element: <Order />,
-        notifications: () => 0,
-    },
-    {
-        path: 'get-purchase',
-        gateKey: 'ordersView',
-        name: 'Get Purchase',
-        icon: <Package2 size={20} />,
-        element: <GetPurchase />,
-        notifications: () => 0,
-    },
-    {
         path: 'receive-items',
         gateKey: 'receiveItemView',
         name: 'Receive Items',
@@ -201,6 +213,21 @@ const routes: RouteAttributes[] = [
             ).length,
     },
     {
+        path: 'handover',
+        gateKey: 'storeOutApprovalView',
+        name: 'Handover',
+        icon: <Handshake size={20} />,
+        element: <Handover />,
+        notifications: (sheets) =>
+            sheets.filter(
+                (sheet) =>
+                    sheet.planned7 !== '' &&
+                    sheet.actual7 === '' &&
+                    sheet.issueStatus === 'Approved' &&
+                    sheet.indentType === 'Store Out'
+            ).length,
+    },
+    {
         path: 'administration',
         gateKey: 'administrate',
         name: 'Adminstration',
@@ -220,31 +247,33 @@ const routes: RouteAttributes[] = [
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-        <AuthProvider>
-            <BrowserRouter>
-                <Routes>
-                    <Route path="/login" element={<Login />} />
-                    <Route
-                        path="/"
-                        element={
-                            <ProtectedRoute>
-                                <WorkflowProvider><SheetsProvider>
-                                    <App routes={routes} />
-                                </SheetsProvider></WorkflowProvider>
-                            </ProtectedRoute>
-                        }
-                    >
-                        {routes.map(({ path, element, gateKey }) => {
-                            return <Route
-                                key={path || 'index'}
-                                path={path}
-                                element={<GatedRoute identifier={gateKey} path={path}>{element}</GatedRoute>}
-                            />
-                        })}
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Route>
-                </Routes>
-            </BrowserRouter>
-        </AuthProvider>
+        <AppErrorBoundary>
+            <AuthProvider>
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/login" element={<Login />} />
+                        <Route
+                            path="/"
+                            element={
+                                <ProtectedRoute>
+                                    <WorkflowProvider><SheetsProvider>
+                                        <App routes={routes} />
+                                    </SheetsProvider></WorkflowProvider>
+                                </ProtectedRoute>
+                            }
+                        >
+                            {routes.map(({ path, element, gateKey }) => {
+                                return <Route
+                                    key={path || 'index'}
+                                    path={path}
+                                    element={<GatedRoute identifier={gateKey} path={path}>{element}</GatedRoute>}
+                                />
+                            })}
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Route>
+                    </Routes>
+                </BrowserRouter>
+            </AuthProvider>
+        </AppErrorBoundary>
     </StrictMode>
 );

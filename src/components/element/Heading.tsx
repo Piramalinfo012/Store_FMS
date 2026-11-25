@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { useSheets } from '@/context/SheetsContext';
 import { useAuth } from '@/context/AuthContext';
-import { canReceiveIndent, useWorkflow } from '@/context/WorkflowContext';
+import { canInitiatePurchase, canReceiveIndent, useWorkflow } from '@/context/WorkflowContext';
 
 interface HeaderProps {
     children: ReactNode;
@@ -27,18 +27,20 @@ const quickPages = [
     { name: 'Initiate Purchase', path: '/initiate-purchase', perm: 'createPo' as const },
     { name: 'Receive Items', path: '/receive-items', perm: 'receiveItemView' as const },
     { name: 'Store Out Approval', path: '/store-out-approval', perm: 'storeOutApprovalView' as const },
+    { name: 'Handover', path: '/handover', perm: 'storeOutApprovalView' as const },
     { name: 'Administration', path: '/administration', perm: 'administrate' as const },
     { name: 'Training Video', path: '/training-video' },
 ];
 
 export default ({ children, heading, subtext, actions, tabs = false }: HeaderProps) => {
     const navigate = useNavigate();
-    const { indentSheet } = useSheets();
+    const { indentSheet, iniciateSheet } = useSheets();
     const { user, logout } = useAuth();
     const { purchaseWorkflowHidden } = useWorkflow();
     const { toggleSidebar } = useSidebar();
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [notifOpen, setNotifOpen] = useState(false);
 
     const notifications = useMemo(() => {
         const items = [
@@ -54,19 +56,15 @@ export default ({ children, heading, subtext, actions, tabs = false }: HeaderPro
                 label: 'Initiate Purchase',
                 path: '/initiate-purchase',
                 allowed: Boolean(user?.createPo),
-                count: indentSheet.filter(
-                    (s) =>
-                        (s.actual3 !== '' || s.actual1 !== '') &&
-                        s.actual4 === '' &&
-                        s.indentType === 'Purchase' &&
-                        s.vendorType !== 'Reject'
-                ).length,
+                count: indentSheet.filter((s) => canInitiatePurchase(s, iniciateSheet)).length,
             },
             {
                 label: 'Receive Items',
                 path: '/receive-items',
                 allowed: Boolean(user?.receiveItemView),
-                count: indentSheet.filter((s) => canReceiveIndent(s, purchaseWorkflowHidden)).length,
+                count: indentSheet.filter((s) =>
+                    canReceiveIndent(s, purchaseWorkflowHidden, iniciateSheet)
+                ).length,
             },
             {
                 label: 'Store Out Approval',
@@ -76,11 +74,23 @@ export default ({ children, heading, subtext, actions, tabs = false }: HeaderPro
                     (s) => s.planned6 !== '' && s.actual6 === '' && s.indentType === 'Store Out'
                 ).length,
             },
+            {
+                label: 'Handover',
+                path: '/handover',
+                allowed: Boolean(user?.storeOutApprovalView),
+                count: indentSheet.filter(
+                    (s) =>
+                        s.planned7 !== '' &&
+                        s.actual7 === '' &&
+                        s.issueStatus === 'Approved' &&
+                        s.indentType === 'Store Out'
+                ).length,
+            },
         ].filter((item) => item.allowed);
 
         const total = items.reduce((sum, item) => sum + item.count, 0);
         return { items, total };
-    }, [indentSheet, user, purchaseWorkflowHidden]);
+    }, [indentSheet, iniciateSheet, user, purchaseWorkflowHidden]);
 
     const filteredPages = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
@@ -143,7 +153,7 @@ export default ({ children, heading, subtext, actions, tabs = false }: HeaderPro
                     </button>
 
                     {/* Notification Bell */}
-                    <Popover>
+                    <Popover open={notifOpen} onOpenChange={setNotifOpen}>
                         <PopoverTrigger asChild>
                             <button
                                 type="button"
@@ -158,28 +168,36 @@ export default ({ children, heading, subtext, actions, tabs = false }: HeaderPro
                                 )}
                             </button>
                         </PopoverTrigger>
-                        <PopoverContent align="end" className="w-72 rounded-2xl p-3 shadow-lg">
-                            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
-                                <span className="text-sm font-bold text-slate-800">Notifications</span>
-                                <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-bold text-purple-700">
+                        <PopoverContent
+                            align="end"
+                            sideOffset={10}
+                            collisionPadding={12}
+                            className="w-[calc(100vw-2rem)] max-w-80 rounded-2xl border border-[#C9BDAF] bg-[#FAF8F4] p-3.5 shadow-xl z-50"
+                        >
+                            <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-[#C9BDAF]/50">
+                                <span className="text-sm font-bold text-[#2F4034]">Notifications</span>
+                                <span className="rounded-full bg-[#D9E1D9] px-2.5 py-0.5 text-[11px] font-bold text-[#2F4034]">
                                     {notifications.total} pending
                                 </span>
                             </div>
-                            <div className="grid gap-1.5">
+                            <div className="grid gap-1">
                                 {notifications.items.length > 0 ? (
                                     notifications.items.map((item) => (
                                         <button
                                             key={item.path}
                                             type="button"
-                                            onClick={() => navigate(item.path)}
-                                            className="flex items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-800 transition-colors"
+                                            onClick={() => {
+                                                setNotifOpen(false);
+                                                navigate(item.path);
+                                            }}
+                                            className="flex items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-semibold text-[#2A332C] hover:bg-[#EAE4DA]/80 active:scale-[0.99] transition-all"
                                         >
                                             <span>{item.label}</span>
                                             <span
-                                                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                                                className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
                                                     item.count > 0
-                                                        ? 'bg-red-100 text-red-700'
-                                                        : 'bg-slate-100 text-slate-500'
+                                                        ? 'bg-[#C25E5E]/15 text-[#C25E5E]'
+                                                        : 'bg-[#EAE4DA] text-[#556158]'
                                                 }`}
                                             >
                                                 {item.count}
@@ -187,7 +205,7 @@ export default ({ children, heading, subtext, actions, tabs = false }: HeaderPro
                                         </button>
                                     ))
                                 ) : (
-                                    <p className="py-3 text-center text-xs text-slate-500">
+                                    <p className="py-3 text-center text-xs text-[#556158]">
                                         No pending notifications
                                     </p>
                                 )}

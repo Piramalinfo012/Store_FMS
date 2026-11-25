@@ -20,7 +20,13 @@ export default () => {
 
     useEffect(() => {
         if (loggedIn) {
-            navigate('/');
+            const redirectTo = sessionStorage.getItem('redirectAfterLogin');
+            if (redirectTo) {
+                sessionStorage.removeItem('redirectAfterLogin');
+                navigate(redirectTo);
+            } else {
+                navigate('/');
+            }
         }
     }, [loggedIn]);
 

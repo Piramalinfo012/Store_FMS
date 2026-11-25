@@ -2,6 +2,7 @@ import Heading from '../element/Heading';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useSheets } from '@/context/SheetsContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Pill } from '../ui/pill';
 import { Download, Filter, Store } from 'lucide-react';
@@ -48,6 +49,7 @@ function escapeCsvCell(value: string | number) {
 
 export default () => {
     const { inventorySheet, inventoryLoading } = useSheets();
+    const isMobile = useIsMobile();
 
     const [tableData, setTableData] = useState<InventoryTable[]>([]);
     const [stockFilter, setStockFilter] = useState<StockFilter>('all');
@@ -132,62 +134,164 @@ export default () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     }
-    const columns: ColumnDef<InventoryTable>[] = [
-        {
-            accessorKey: 'itemName',
-            header: 'Item',
-            cell: ({ row }) => {
-                return (
-                    <div className="text-wrap max-w-40 text-center">{row.original.itemName}</div>
-                );
-            },
-        },
-        { accessorKey: 'groupHead', header: 'Group Head' },
-        { accessorKey: 'uom', header: 'UOM' },
-        {
-            accessorKey: 'rate',
-            header: 'Rate',
-            cell: ({ row }) => {
-                return <>&#8377;{row.original.rate}</>;
-            },
-        },
-        {
-            accessorKey: 'status',
-            header: 'Status',
-            cell: ({ row }) => {
-                const code = row.original.status.toLowerCase();
-                if (row.original.current === 0) {
-                    return <Pill variant="reject">Out of Stock</Pill>;
-                }
-                if (code === 'red') {
-                    return <Pill variant="pending">Low Stock</Pill>;
-                }
-                if (code === 'purple') {
-                    return <Pill variant="primary">Excess</Pill>;
-                }
-                return <Pill variant="secondary">In Stock</Pill>;
-            },
-        },
-        { accessorKey: 'indented', header: 'Indented' },
-        { accessorKey: 'approved', header: 'Approved' },
-        { accessorKey: 'purchaseQuantity', header: 'Purchased' },
-        { accessorKey: 'outQuantity', header: 'Issued' },
-        { accessorKey: 'current', header: 'Quantity' },
-        {
-            accessorKey: 'totalPrice',
-            header: 'Total Price',
+    const columns: ColumnDef<InventoryTable>[] = useMemo(() => {
+        if (isMobile) {
+            return [
+                {
+                    accessorKey: 'itemName',
+                    header: 'Item',
+                    cell: ({ row }) => (
+                        <div className="text-left text-xs font-medium leading-snug whitespace-normal break-words max-w-[170px]">
+                            {row.original.itemName}
+                        </div>
+                    ),
+                },
+                {
+                    accessorKey: 'current',
+                    header: 'Stock Details',
+                    cell: ({ row }) => {
+                        const code = row.original.status.toLowerCase();
+                        const statusPill =
+                            row.original.current === 0 ? (
+                                <Pill variant="reject">Out of Stock</Pill>
+                            ) : code === 'red' ? (
+                                <Pill variant="pending">Low Stock</Pill>
+                            ) : code === 'purple' ? (
+                                <Pill variant="primary">Excess</Pill>
+                            ) : (
+                                <Pill variant="secondary">In Stock</Pill>
+                            );
 
-            cell: ({ row }) => {
-                return <>&#8377;{row.original.totalPrice}</>;
+                        return (
+                            <div className="flex flex-col items-end gap-1">
+                                <span className="text-xs font-semibold whitespace-nowrap">
+                                    {row.original.current} {row.original.uom}
+                                </span>
+                                {statusPill}
+                            </div>
+                        );
+                    },
+                },
+            ];
+        }
+
+        return [
+            {
+                accessorKey: 'itemName',
+                header: 'Item',
+                cell: ({ row }) => {
+                    return (
+                        <div className="text-wrap max-w-40 text-center">{row.original.itemName}</div>
+                    );
+                },
             },
-        },
-    ];
+            { accessorKey: 'groupHead', header: 'Group Head' },
+            { accessorKey: 'uom', header: 'UOM' },
+            {
+                accessorKey: 'rate',
+                header: 'Rate',
+                cell: ({ row }) => {
+                    return <>&#8377;{row.original.rate}</>;
+                },
+            },
+            {
+                accessorKey: 'status',
+                header: 'Status',
+                cell: ({ row }) => {
+                    const code = row.original.status.toLowerCase();
+                    if (row.original.current === 0) {
+                        return <Pill variant="reject">Out of Stock</Pill>;
+                    }
+                    if (code === 'red') {
+                        return <Pill variant="pending">Low Stock</Pill>;
+                    }
+                    if (code === 'purple') {
+                        return <Pill variant="primary">Excess</Pill>;
+                    }
+                    return <Pill variant="secondary">In Stock</Pill>;
+                },
+            },
+            { accessorKey: 'indented', header: 'Indented' },
+            { accessorKey: 'approved', header: 'Approved' },
+            { accessorKey: 'purchaseQuantity', header: 'Purchased' },
+            { accessorKey: 'outQuantity', header: 'Issued' },
+            { accessorKey: 'current', header: 'Quantity' },
+            {
+                accessorKey: 'totalPrice',
+                header: 'Total Price',
+
+                cell: ({ row }) => {
+                    return <>&#8377;{row.original.totalPrice}</>;
+                },
+            },
+        ];
+    }, [isMobile]);
 
     return (
         <div>
             <Heading heading="Inventory" subtext="View inveontory">
                 <Store size={50} className="text-primary" />
             </Heading>
+
+            <div className="flex flex-wrap items-center gap-2 px-3 sm:px-4 pt-3">
+                {[
+                    {
+                        key: 'out_of_stock' as const,
+                        label: 'Out of Stock',
+                        range: '0%',
+                        count: statusCounts.out_of_stock,
+                        dot: 'bg-red-500',
+                        pill: 'border-red-200 bg-red-50/80 text-red-700 hover:bg-red-100/80',
+                        activeRing: 'ring-2 ring-red-400',
+                    },
+                    {
+                        key: 'low_stock' as const,
+                        label: 'Low Stock',
+                        range: '1% - 25%',
+                        count: statusCounts.low_stock,
+                        dot: 'bg-amber-500',
+                        pill: 'border-amber-200 bg-amber-50/80 text-amber-800 hover:bg-amber-100/80',
+                        activeRing: 'ring-2 ring-amber-400',
+                    },
+                    {
+                        key: 'in_stock' as const,
+                        label: 'Normal Stock',
+                        range: '26% - 100%',
+                        count: statusCounts.in_stock,
+                        dot: 'bg-emerald-500',
+                        pill: 'border-emerald-200 bg-emerald-50/80 text-emerald-800 hover:bg-emerald-100/80',
+                        activeRing: 'ring-2 ring-emerald-400',
+                    },
+                    {
+                        key: 'excess' as const,
+                        label: 'Excess Stock',
+                        range: '> 100%',
+                        count: statusCounts.excess,
+                        dot: 'bg-purple-500',
+                        pill: 'border-purple-200 bg-purple-50/80 text-purple-800 hover:bg-purple-100/80',
+                        activeRing: 'ring-2 ring-purple-400',
+                    },
+                ].map((item) => {
+                    const isActive = stockFilter === item.key;
+                    return (
+                        <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => setStockFilter(isActive ? 'all' : item.key)}
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer ${item.pill} ${
+                                isActive ? item.activeRing : ''
+                            }`}
+                        >
+                            <span className={`size-2 rounded-full ${item.dot}`} />
+                            <span>{item.label}</span>
+                            <span className="opacity-75">({item.range})</span>
+                            <span className="ml-0.5 rounded-full bg-white/80 px-1.5 py-0.2 text-[10px] font-bold">
+                                {item.count}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
 
             <DataTable
                 data={filteredData}

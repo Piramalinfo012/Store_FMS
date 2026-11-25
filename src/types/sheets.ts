@@ -1,4 +1,4 @@
-export type Sheet = 'INDENT' | 'RECEIVED' | 'MASTER' | 'USER' | 'PO MASTER' | "INVENTORY" | "VENDOR" | "PRODUCT" | "PURCHASE" | "INICIATE" | "Vender Master";
+export type Sheet = 'INDENT' | 'RECEIVED' | 'MASTER' | 'USER' | 'PO MASTER' | "INVENTORY" | "VENDOR" | "PRODUCT" | "PURCHASE" | "INICIATE" | "Vender Master" | "Whatsapp Log";
 
 export type VenderMasterSheet = {
     vendorName: string;
@@ -81,6 +81,9 @@ export type IndentSheet = {
     planned7: string;
     actual7: string;
     timeDelay7: string;
+    handoverQty?: number;
+    attachmentUrl?: string;
+    remarkIfAny?: string;
     billStatus: string;
     billNumber: string;
     qty: number;

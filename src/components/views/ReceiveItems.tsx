@@ -28,10 +28,11 @@ import { Truck } from 'lucide-react';
 import { Tabs, TabsContent } from '../ui/tabs';
 import { useAuth } from '@/context/AuthContext';
 import Heading from '../element/Heading';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatDateTime } from '@/lib/utils';
 import { Pill } from '../ui/pill';
 
 interface RecieveItemsData {
+    indentTimestamp: string;
     poDate: string;
     poNumber: string;
     vendor: string;
@@ -43,6 +44,7 @@ interface RecieveItemsData {
 }
 
 interface HistoryData {
+    indentTimestamp: string;
     receiveStatus: string;
     poNumber: string;
     poDate: string;
@@ -65,7 +67,7 @@ interface HistoryData {
 }
 
 export default () => {
-    const { indentSheet, receivedSheet, updateAll, indentLoading, receivedLoading } = useSheets();
+    const { indentSheet, iniciateSheet, receivedSheet, updateAll, indentLoading, receivedLoading } = useSheets();
     const { user } = useAuth();
     const { purchaseWorkflowHidden } = useWorkflow();
 
@@ -77,25 +79,32 @@ export default () => {
     useEffect(() => {
         setTableData(
             indentSheet
-                .filter((i) => canReceiveIndent(i, purchaseWorkflowHidden))
-                .map((i) => ({
-                    indentNumber: i.indentNumber,
-                    poNumber: i.poNumber,
-                    uom: i.uom,
-                    poCopy: i.poCopy,
-                    vendor: i.approvedVendorName,
-                    quantity: i.approvedQuantity,
-                    poDate: i.actual4 || i.actual1,
-                    product: i.productName,
-                }))
+                .filter((i) => canReceiveIndent(i, purchaseWorkflowHidden, iniciateSheet))
+                .map((i) => {
+                    const ini = iniciateSheet.find(
+                        (r) => r.indentNo === i.indentNumber && r.productName === i.productName
+                    );
+                    return {
+                        indentTimestamp: formatDateTime(new Date(i.timestamp)),
+                        indentNumber: i.indentNumber,
+                        poNumber: i.poNumber || ini?.vendorContactNo || '',
+                        uom: i.uom || ini?.unit || '',
+                        poCopy: i.poCopy,
+                        vendor: i.approvedVendorName || ini?.vendorName || '',
+                        quantity: i.approvedQuantity || ini?.quantity || i.quantity,
+                        poDate: i.actual4 || ini?.timestamp || i.actual1,
+                        product: i.productName,
+                    };
+                })
         );
-    }, [indentSheet, purchaseWorkflowHidden]);
+    }, [indentSheet, iniciateSheet, purchaseWorkflowHidden]);
 
     useEffect(() => {
         setHistoryData(
             receivedSheet.map((r) => {
                 const indent = indentSheet.find((i) => i.indentNumber === r.indentNumber);
                 return {
+                    indentTimestamp: indent?.timestamp ? formatDateTime(new Date(indent.timestamp)) : '',
                     receiveStatus: r.receivedStatus,
                     poNumber: r.poNumber,
                     poDate: formatDate(new Date(r.poDate)),
@@ -146,6 +155,7 @@ export default () => {
                 },
             ]
             : []),
+        { accessorKey: 'indentTimestamp', header: 'Indent Timestamp' },
         {
             accessorKey: 'poDate',
             header: 'PO Date',
@@ -175,6 +185,7 @@ export default () => {
     ];
 
     const historyColumns: ColumnDef<HistoryData>[] = [
+        { accessorKey: 'indentTimestamp', header: 'Indent Timestamp' },
         { accessorKey: 'poDate', header: 'PO Date' },
         { accessorKey: 'poNumber', header: 'PO Number' },
         {
@@ -438,21 +449,22 @@ export default () => {
                 </Tabs>
 
                 {selectedIndent && (
-                    <DialogContent className="sm:max-w-3xl">
+                    <DialogContent className="sm:max-w-3xl max-h-[90dvh] flex flex-col p-0 overflow-hidden">
                         <Form {...form}>
                             <form
                                 onSubmit={form.handleSubmit(onSubmit, onError)}
-                                className="space-y-5"
+                                className="flex flex-col flex-1 min-h-0"
                             >
-                                <DialogHeader className="space-y-1">
+                                <DialogHeader className="space-y-1 px-6 pt-5 pb-3 border-b shrink-0">
                                     <DialogTitle>Receive Item</DialogTitle>
                                     <DialogDescription>
-                                        Receive item fron indent{' '}
+                                        Receive item from indent{' '}
                                         <span className="font-medium">
                                             {selectedIndent.indentNumber}
                                         </span>
                                     </DialogDescription>
                                 </DialogHeader>
+                                <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                                 <div className="bg-muted p-4 rounded-md grid gap-3">
                                     <h3 className="text-lg font-bold">Item Details</h3>
                                     <div className="grid grid-cols-2 md:grid-cols-4 bg-muted rounded-md gap-3 ">
@@ -490,27 +502,27 @@ export default () => {
                                         name="status"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormControl>
-                                                    <Select
-                                                        onValueChange={field.onChange}
-                                                        value={field.value}
-                                                    >
-                                                        <FormLabel>Receiving Status</FormLabel>
-                                                        <FormControl>
-                                                            <SelectTrigger className="w-full">
-                                                                <SelectValue placeholder="Set status" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="Received">
-                                                                Received
-                                                            </SelectItem>
-                                                            <SelectItem value="Not Received">
-                                                                Not Received
-                                                            </SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormControl>
+                                                <FormLabel>
+                                                    Receiving Status <span className="text-destructive">*</span>
+                                                </FormLabel>
+                                                <Select
+                                                    onValueChange={field.onChange}
+                                                    value={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger className="w-full">
+                                                            <SelectValue placeholder="Set status" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Received">
+                                                            Received
+                                                        </SelectItem>
+                                                        <SelectItem value="Not Received">
+                                                            Not Received
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                             </FormItem>
                                         )}
                                     />
@@ -520,7 +532,12 @@ export default () => {
                                         name="quantity"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Received Quantity</FormLabel>
+                                                <FormLabel>
+                                                    Received Quantity{' '}
+                                                    {status === 'Received' && (
+                                                        <span className="text-destructive">*</span>
+                                                    )}
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="number"
@@ -560,33 +577,36 @@ export default () => {
                                         name="warrantyStatus"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormControl>
-                                                    <Select
-                                                        onValueChange={field.onChange}
-                                                        value={field.value}
-                                                    >
-                                                        <FormLabel>Warranty</FormLabel>
-                                                        <FormControl>
-                                                            <SelectTrigger
-                                                                className="w-full"
-                                                                disabled={status !== 'Received'}
-                                                            >
-                                                                <SelectValue placeholder="Set warranty" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="Not Any">
-                                                                Not Any
-                                                            </SelectItem>
-                                                            <SelectItem value="Warranty">
-                                                                Warranty
-                                                            </SelectItem>
-                                                            <SelectItem value="Gaurantee">
-                                                                Gaurantee
-                                                            </SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormControl>
+                                                <FormLabel>
+                                                    Warranty{' '}
+                                                    {status === 'Received' && (
+                                                        <span className="text-destructive">*</span>
+                                                    )}
+                                                </FormLabel>
+                                                <Select
+                                                    onValueChange={field.onChange}
+                                                    value={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger
+                                                            className="w-full"
+                                                            disabled={status !== 'Received'}
+                                                        >
+                                                            <SelectValue placeholder="Set warranty" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Not Any">
+                                                            Not Any
+                                                        </SelectItem>
+                                                        <SelectItem value="Warranty">
+                                                            Warranty
+                                                        </SelectItem>
+                                                        <SelectItem value="Gaurantee">
+                                                            Gaurantee
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                             </FormItem>
                                         )}
                                     />
@@ -596,7 +616,15 @@ export default () => {
                                         name="warrantyDate"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>End of Warrany / Guarantee</FormLabel>
+                                                <FormLabel>
+                                                    End of Warranty / Guarantee{' '}
+                                                    {status === 'Received' &&
+                                                        ['Warranty', 'Gaurantee'].includes(
+                                                            warrantyStatus || ''
+                                                        ) && (
+                                                            <span className="text-destructive">*</span>
+                                                        )}
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="date"
@@ -631,30 +659,33 @@ export default () => {
                                         name="billReceived"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormControl>
-                                                    <Select
-                                                        onValueChange={field.onChange}
-                                                        value={field.value}
-                                                    >
-                                                        <FormLabel>Bill Received</FormLabel>
-                                                        <FormControl>
-                                                            <SelectTrigger
-                                                                className="w-full"
-                                                                disabled={status !== 'Received'}
-                                                            >
-                                                                <SelectValue placeholder="Set bill received" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="Received">
-                                                                Received
-                                                            </SelectItem>
-                                                            <SelectItem value="Not Received">
-                                                                Not Received
-                                                            </SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </FormControl>
+                                                <FormLabel>
+                                                    Bill Received{' '}
+                                                    {status === 'Received' && (
+                                                        <span className="text-destructive">*</span>
+                                                    )}
+                                                </FormLabel>
+                                                <Select
+                                                    onValueChange={field.onChange}
+                                                    value={field.value}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger
+                                                            className="w-full"
+                                                            disabled={status !== 'Received'}
+                                                        >
+                                                            <SelectValue placeholder="Set bill received" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Received">
+                                                            Received
+                                                        </SelectItem>
+                                                        <SelectItem value="Not Received">
+                                                            Not Received
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
                                             </FormItem>
                                         )}
                                     />
@@ -663,7 +694,13 @@ export default () => {
                                         name="billNo"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Bill Number</FormLabel>
+                                                <FormLabel>
+                                                    Bill Number{' '}
+                                                    {status === 'Received' &&
+                                                        billReceived === 'Received' && (
+                                                            <span className="text-destructive">*</span>
+                                                        )}
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         disabled={
@@ -682,7 +719,13 @@ export default () => {
                                         name="billAmount"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Bill Amount</FormLabel>
+                                                <FormLabel>
+                                                    Bill Amount{' '}
+                                                    {status === 'Received' &&
+                                                        billReceived === 'Received' && (
+                                                            <span className="text-destructive">*</span>
+                                                        )}
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="number"
@@ -726,26 +769,29 @@ export default () => {
                                     name="anyTransport"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormControl>
-                                                <Select
-                                                    onValueChange={field.onChange}
-                                                    value={field.value}
-                                                >
-                                                    <FormLabel>Any transport</FormLabel>
-                                                    <FormControl>
-                                                        <SelectTrigger
-                                                            className="w-full"
-                                                            disabled={status !== 'Received'}
-                                                        >
-                                                            <SelectValue placeholder="Any tranport?" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="Yes">Yes</SelectItem>
-                                                        <SelectItem value="No">No</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </FormControl>
+                                            <FormLabel>
+                                                Any transport{' '}
+                                                {status === 'Received' && (
+                                                    <span className="text-destructive">*</span>
+                                                )}
+                                            </FormLabel>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger
+                                                        className="w-full"
+                                                        disabled={status !== 'Received'}
+                                                    >
+                                                        <SelectValue placeholder="Any transport?" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Yes">Yes</SelectItem>
+                                                    <SelectItem value="No">No</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </FormItem>
                                     )}
                                 />
@@ -755,7 +801,13 @@ export default () => {
                                         name="transporterName"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Transporter Name</FormLabel>
+                                                <FormLabel>
+                                                    Transporter Name{' '}
+                                                    {status === 'Received' &&
+                                                        anyTransport === 'Yes' && (
+                                                            <span className="text-destructive">*</span>
+                                                        )}
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         disabled={
@@ -774,7 +826,13 @@ export default () => {
                                         name="transportingAmount"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Transporting Amount</FormLabel>
+                                                <FormLabel>
+                                                    Transporting Amount{' '}
+                                                    {status === 'Received' &&
+                                                        anyTransport === 'Yes' && (
+                                                            <span className="text-destructive">*</span>
+                                                        )}
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="number"
@@ -790,9 +848,10 @@ export default () => {
                                         )}
                                     />
                                 </div>
-                                <DialogFooter>
+                                </div>
+                                <DialogFooter className="px-6 py-3 border-t bg-background shrink-0">
                                     <DialogClose asChild>
-                                        <Button variant="outline">Close</Button>
+                                        <Button type="button" variant="outline">Close</Button>
                                     </DialogClose>
 
                                     <Button type="submit" disabled={form.formState.isSubmitting}>

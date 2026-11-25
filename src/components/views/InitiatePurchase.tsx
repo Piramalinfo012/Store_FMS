@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSheets } from '@/context/SheetsContext';
 import { Textarea } from '../ui/textarea';
 import {
+    Dialog,
     DialogClose,
     DialogContent,
     DialogDescription,
@@ -13,7 +14,6 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '../ui/button';
-import { Dialog } from '@radix-ui/react-dialog';
 import { z } from 'zod';
 import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,12 +24,14 @@ import { toast } from 'sonner';
 import { PuffLoader as Loader } from 'react-spinners';
 import { Tabs, TabsContent } from '../ui/tabs';
 import { Plus, ShoppingCart } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatDateTime } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { canInitiatePurchase } from '@/context/WorkflowContext';
 import Heading from '../element/Heading';
 import { Pill } from '../ui/pill';
 
 interface PurchaseInitiateData {
+    indentTimestamp: string;
     indentNo: string;
     indenter: string;
     department: string;
@@ -83,35 +85,38 @@ export default () => {
     });
 
     useEffect(() => {
+        const initiatedKeys = new Set(
+            iniciateSheet.map((r) => `${r.indentNo}::${r.productName}`)
+        );
         setTableData(
             indentSheet
                 .filter(
                     (sheet) =>
-                        (sheet.actual3 !== '' || sheet.actual1 !== '') &&
-                        sheet.actual4 === '' &&
-                        sheet.indentType === 'Purchase' &&
-                        sheet.vendorType !== 'Reject'
+                        canInitiatePurchase(sheet) &&
+                        !initiatedKeys.has(`${sheet.indentNumber}::${sheet.productName}`)
                 )
                 .map((sheet) => ({
+                    indentTimestamp: formatDateTime(new Date(sheet.timestamp)),
                     indentNo: sheet.indentNumber,
                     indenter: sheet.indenterName,
                     department: sheet.department,
                     product: sheet.productName,
-                    approvedQuantity: sheet.approvedQuantity || sheet.quantity,
-                    uom: sheet.uom,
+                    approvedQuantity: sheet.approvedQty || sheet.approvedQuantity || sheet.quantity,
+                    uom: sheet.unit || sheet.uom,
                     approvedVendorName: sheet.approvedVendorName,
                     approvedRate: sheet.approvedRate,
-                    date: formatDate(new Date(sheet.actual3 || sheet.actual1)),
+                    date: formatDate(new Date(sheet.actual3)),
                 }))
+                .sort((a, b) => b.indentNo.localeCompare(a.indentNo))
         );
-    }, [indentSheet]);
+    }, [indentSheet, iniciateSheet]);
 
     useEffect(() => {
         setHistoryData(
             [...iniciateSheet]
                 .reverse()
                 .map((row) => ({
-                    timestamp: row.timestamp ? formatDate(new Date(row.timestamp)) : '',
+                    timestamp: row.timestamp ? formatDateTime(new Date(row.timestamp)) : '',
                     indentNo: row.indentNo,
                     vendorName: row.vendorName,
                     vendorContactNo: row.vendorContactNo,
@@ -150,6 +155,7 @@ export default () => {
                 },
             ]
             : []),
+        { accessorKey: 'indentTimestamp', header: 'Indent Timestamp' },
         { accessorKey: 'indentNo', header: 'Indent No.' },
         { accessorKey: 'indenter', header: 'Indenter' },
         { accessorKey: 'department', header: 'Department' },
@@ -326,26 +332,7 @@ export default () => {
                 );
             }
 
-            // 1. Store initiate purchase record in INICIATE sheet with exact sheet fields
-            await postToSheet(
-                [
-                    {
-                        timestamp: now,
-                        indentNo: selectedIndent.indentNo,
-                        vendorName: values.vendorName,
-                        vendorContactNo: values.vendorNumber,
-                        productName: selectedIndent.product,
-                        quantity: values.quantity,
-                        unit: selectedIndent.uom,
-                        price: values.price,
-                        remark: values.remark || '',
-                    },
-                ],
-                'insert',
-                'INICIATE'
-            );
-
-            // 2. Update INDENT sheet so it moves to Receive Items with vendor/qty/price/bill attachment
+            // 1 & 2. Insert into INICIATE and update INDENT in parallel to halve submit time
             const updateData = indentSheet
                 .filter((s) => s.indentNumber === selectedIndent.indentNo)
                 .map((prev) => ({
@@ -359,14 +346,32 @@ export default () => {
                     ...(poCopyUrl ? { poCopy: poCopyUrl } : {}),
                 }));
 
-            await postToSheet(updateData, 'update', 'INDENT');
+            await Promise.all([
+                postToSheet(
+                    [
+                        {
+                            timestamp: now,
+                            indentNo: selectedIndent.indentNo,
+                            vendorName: values.vendorName,
+                            vendorContactNo: values.vendorNumber,
+                            productName: selectedIndent.product,
+                            quantity: values.quantity,
+                            unit: selectedIndent.uom,
+                            price: values.price,
+                            remark: values.remark || '',
+                        },
+                    ],
+                    'insert',
+                    'INICIATE'
+                ),
+                postToSheet(updateData, 'update', 'INDENT'),
+            ]);
+
             toast.success(`Initiated purchase for ${selectedIndent.indentNo}`);
             setOpenDialog(false);
             form.reset();
-            setTimeout(() => {
-                updateIniciateSheet();
-                updateIndentSheet();
-            }, 1000);
+            updateIniciateSheet();
+            updateIndentSheet();
         } catch (error) {
             console.error(error);
             toast.error('Failed to initiate purchase');

@@ -14,6 +14,19 @@ export function formatDate(date: Date): string {
     return `${d}/${m}/${y}`;
 }
 
+export function formatDateTime(date: Date): string {
+    if (Number.isNaN(date.getTime())) return '';
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    const time = date.toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+    });
+    return `${d}/${m}/${y}, ${time}`;
+}
+
 export function calculateTotal(
     rate: number,
     gstPercent: number,

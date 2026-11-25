@@ -16,12 +16,13 @@ import {
 import { ClipLoader as Loader } from 'react-spinners';
 import { ClipboardList, Filter, Trash2, Search, Plus, Send, Package } from 'lucide-react';
 import { postToSheet, uploadFile } from '@/lib/fetchers';
+import { sendIndentWhatsAppNotifications } from '@/lib/whatsapp';
 import type { IndentSheet } from '@/types';
 import { useSheets } from '@/context/SheetsContext';
 import Heading from '../element/Heading';
 import DataTable from '../element/DataTable';
 import { Pill } from '../ui/pill';
-import { formatDate } from '@/lib/utils';
+import { formatDateTime } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
     Dialog,
@@ -64,7 +65,7 @@ export default () => {
         return [...indentSheet]
             .reverse()
             .map((item) => ({
-                date: item.timestamp ? formatDate(new Date(item.timestamp)) : '',
+                date: item.timestamp ? formatDateTime(new Date(item.timestamp)) : '',
                 indentNumber: item.indentNumber,
                 indenterName: item.indenterName,
                 indentType: item.indentType,
@@ -95,7 +96,7 @@ export default () => {
     }, [tableData, typeFilter]);
 
     const columns: ColumnDef<IndentHistoryRow>[] = [
-        { accessorKey: 'date', header: 'Date' },
+        { accessorKey: 'date', header: 'Timestamp' },
         { accessorKey: 'indentNumber', header: 'Indent No.' },
         { accessorKey: 'indenterName', header: 'Indenter' },
         {
@@ -231,6 +232,21 @@ export default () => {
             await postToSheet(rows);
             updateIndentSheet();
             toast.success('Indent created successufully');
+
+            // Send Maytapi WhatsApp notifications (4 people for Purchase, 2 people for Store Out)
+            sendIndentWhatsAppNotifications({
+                indentNumber: nextIndentNumber,
+                indentType: data.indentType,
+                indenterName: data.indenterName,
+                indentApprovedBy: data.indentApproveBy,
+                products: data.products,
+            }).then((waRes) => {
+                if (!waRes.skipped && waRes.sent > 0) {
+                    toast.success(`WhatsApp alert sent to ${waRes.sent} recipient(s)`);
+                } else if (!waRes.skipped && waRes.failed > 0) {
+                    toast.error('WhatsApp alert failed to send. Check Maytapi credentials.');
+                }
+            });
             setOpenDialog(false);
             form.reset({
                 indenterName: '',
