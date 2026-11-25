@@ -1,27 +1,105 @@
-/* Keep the form layout and field behavior; enhance only their surfaces. */
+/* Calm / Kit Sage & Ivory Theme for all forms */
 form :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]), textarea, select, button[role=combobox]) {
-    border-width: 1px;
-    border-color: #d9d3e9;
-    border-radius: 10px;
-    background-color: #fff;
-    box-shadow: 0 2px 5px #76628b06, inset 0 1px 0 #fff;
-    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+    border-width: 1.5px;
+    border-color: #9E9284;
+    border-radius: 12px;
+    background-color: #FAF8F4;
+    color: #1F2621;
+    font-weight: 500;
+    box-shadow: 0 1px 2px 0 rgba(31, 38, 33, 0.05);
+    transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-form :is(input, textarea, select, button[role=combobox]):not(:disabled):not([data-disabled]):not([aria-invalid=true]):hover { border-color: #bfaedb; background-color: #fefcff; }
+form :is(input, textarea)::placeholder {
+    color: #556158 !important;
+    opacity: 0.85;
+    font-weight: 400;
+}
+form button[role=combobox] span,
+form [data-slot="select-trigger"][data-placeholder] {
+    color: #556158 !important;
+    opacity: 0.85;
+    font-weight: 400;
+}
+form [data-slot="select-trigger"] svg {
+    color: #424E45 !important;
+    opacity: 0.85;
+}
+form [data-slot="form-label"] {
+    color: #1F2621;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.1px;
+}
+form :is(input, textarea, select, button[role=combobox]):not(:disabled):not([data-disabled]):not([aria-invalid=true]):hover {
+    border-color: #687F6E;
+    background-color: #FFFFFF;
+}
 form :is(input, textarea, select, button[role=combobox]):not([aria-invalid=true]):focus-visible,
 form button[role=combobox][data-state=open]:not([aria-invalid=true]) {
-    border-color: #aa8ed4;
+    border-color: #687F6E;
     outline: none;
-    box-shadow: 0 0 0 3px #bba2e024;
-    background-color: #fff;
+    box-shadow: 0 0 0 3.5px rgba(104, 127, 110, 0.22);
+    background-color: #FFFFFF;
 }
-form :is(input, textarea, select, button[role=combobox])[aria-invalid=true] { border-color: #df839b; box-shadow: 0 0 0 3px #df839b16; }
+form :is(input, textarea, select, button[role=combobox])[aria-invalid=true] {
+    border-color: #C25E5E;
+    box-shadow: 0 0 0 3px rgba(194, 94, 94, 0.18);
+}
 form :is(input, textarea, select, button[role=combobox]):disabled,
-form button[role=combobox][data-disabled] { border-color: #e5e1ee; background-color: #f8f7fb; box-shadow: none; }
-form input[type=file] { border-style: dashed; border-color: #cdbfe3; background-color: #fcfaff; }
-form input[type=file]::file-selector-button { background: #eee7fa; color: #8b6db7; border-right: 1px solid #e1d6ef; }
-form .form-product-panel { border: 1px solid #dcd2ec; border-radius: 15px; background: linear-gradient(135deg, #fcfaff, #fff 35%, #fcfefd); box-shadow: 0 3px 14px #8d73b009; transition: border-color 200ms ease, box-shadow 200ms ease; }
-form .form-product-panel:focus-within { border-color: #c3afdF; box-shadow: 0 4px 18px #9a7abb10; }
+form button[role=combobox][data-disabled] {
+    border-color: #C9BDAF;
+    background-color: #EAE4DA;
+    color: #6A756D;
+    box-shadow: none;
+}
+form input[type=file] {
+    border-style: dashed;
+    border-width: 1.5px;
+    border-color: #9E9284;
+    border-radius: 12px;
+    background-color: #FAF8F4;
+    color: #1F2621;
+    cursor: pointer;
+    transition: all 180ms ease;
+}
+form input[type=file]:hover {
+    border-color: #687F6E;
+    background-color: #F2F5F2;
+}
+form input[type=file]::file-selector-button {
+    background: #D9E1D9;
+    color: #2F4034;
+    font-weight: 600;
+    border: none;
+    border-right: 1.5px solid #A7B5A7;
+    padding: 0 16px;
+    cursor: pointer;
+    transition: background 180ms ease;
+}
+form input[type=file]::file-selector-button:hover {
+    background: #C7D3C7;
+}
+form .form-section-card {
+    background: #FAF8F4;
+    border: 1.5px solid #C9BDAF;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(31, 38, 33, 0.05);
+}
+form .form-product-panel {
+    background: #FAF8F4;
+    border: 1.5px solid #C9BDAF;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(31, 38, 33, 0.05);
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+form .form-product-panel:hover {
+    border-color: #A7B5A7;
+    box-shadow: 0 4px 14px rgba(104, 127, 110, 0.12);
+}
+form .form-product-panel:focus-within {
+    border-color: #687F6E;
+    box-shadow: 0 6px 18px rgba(104, 127, 110, 0.16);
+}
 @media (prefers-reduced-motion: reduce) {
     form :is(input, textarea, select, button[role=combobox]), form .form-product-panel { transition: none; }
 }

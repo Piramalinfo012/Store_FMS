@@ -10,6 +10,8 @@ import {
     Truck,
     Warehouse,
     Plus,
+    UserPlus,
+    PackagePlus,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { ChartContainer, ChartTooltip, type ChartConfig } from '../ui/chart';
@@ -38,19 +40,20 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PuffLoader as Loader } from 'react-spinners';
 import { toast } from 'sonner';
-import { postToMasterSheet } from '@/lib/fetchers';
+import { postToMasterSheet, postToSheet } from '@/lib/fetchers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const vendorSchema = z.object({
     vendorName: z.string().min(1, 'Vendor Name is required'),
-    gstNumber: z.string().min(1, 'GST Number is required'),
-    panNumber: z.string().min(1, 'PAN Number is required'),
+    gstNumber: z.string().optional(),
+    panNumber: z.string().optional(),
     contactPerson: z.string().optional(),
     contactPersonNumber: z.string().optional(),
 });
 
 function AddVendor({ onComplete }: { onComplete: () => void }) {
     const [open, setOpen] = useState(false);
+    const { venderMasterSheet, masterSheet, updateVenderMasterSheet } = useSheets();
     const form = useForm<z.infer<typeof vendorSchema>>({
         resolver: zodResolver(vendorSchema),
         defaultValues: {
@@ -63,11 +66,29 @@ function AddVendor({ onComplete }: { onComplete: () => void }) {
     });
 
     async function onSubmit(values: z.infer<typeof vendorSchema>) {
+        const normalizedName = values.vendorName.trim().toLowerCase();
+        const isDuplicate =
+            venderMasterSheet.some((v) => String(v.vendorName || '').trim().toLowerCase() === normalizedName) ||
+            (masterSheet?.vendors || []).some((v) => String(v.vendorName || '').trim().toLowerCase() === normalizedName);
+
+        if (isDuplicate) {
+            toast.error(`Vendor "${values.vendorName.trim()}" already exists in Vender Master`);
+            return;
+        }
+
         try {
-            await postToMasterSheet([values], 'VENDOR');
-            toast.success('Vendor added successfully');
+            const payload = {
+                vendorName: values.vendorName.trim(),
+                gstNumber: (values.gstNumber || '').trim(),
+                panNumber: (values.panNumber || '').trim(),
+                contactPerson: (values.contactPerson || '').trim(),
+                contactPersonNumber: (values.contactPersonNumber || '').trim(),
+            };
+            await postToSheet([payload], 'insert', 'Vender Master');
+            toast.success('Vendor added to Vender Master');
             setOpen(false);
             form.reset();
+            setTimeout(() => updateVenderMasterSheet(), 800);
             onComplete();
         } catch {
             toast.error('Failed to add vendor');
@@ -77,8 +98,9 @@ function AddVendor({ onComplete }: { onComplete: () => void }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Add Vendor Name
+                <Button title="Add Vendor Name" aria-label="Add Vendor Name">
+                    <UserPlus className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Add Vendor Name</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
@@ -106,7 +128,7 @@ function AddVendor({ onComplete }: { onComplete: () => void }) {
                             name="gstNumber"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>GST Number *</FormLabel>
+                                    <FormLabel>GST Number</FormLabel>
                                     <FormControl>
                                         <Input placeholder="Enter GST number" {...field} />
                                     </FormControl>
@@ -119,7 +141,7 @@ function AddVendor({ onComplete }: { onComplete: () => void }) {
                             name="panNumber"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>PAN Number *</FormLabel>
+                                    <FormLabel>PAN Number</FormLabel>
                                     <FormControl>
                                         <Input placeholder="Enter PAN number" {...field} />
                                     </FormControl>
@@ -198,8 +220,9 @@ function AddProduct({ onComplete }: { onComplete: () => void }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Add Product Name
+                <Button title="Add Product Name" aria-label="Add Product Name">
+                    <PackagePlus className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Add Product Name</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
@@ -286,8 +309,9 @@ function AddTransporter({ onComplete }: { onComplete: () => void }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Add Transporter Name
+                <Button title="Add Transporter Name" aria-label="Add Transporter Name">
+                    <Truck className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Add Transporter Name</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">

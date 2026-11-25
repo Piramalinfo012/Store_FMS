@@ -1,5 +1,5 @@
 import { fetchSheet } from '@/lib/fetchers';
-import type { IndentSheet, InventorySheet, MasterSheet, PoMasterSheet, ReceivedSheet } from '@/types';
+import type { IndentSheet, IniciateSheet, InventorySheet, MasterSheet, PoMasterSheet, ReceivedSheet, VenderMasterSheet } from '@/types';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -7,15 +7,21 @@ interface SheetsState {
     updateReceivedSheet: () => void;
     updatePoMasterSheet: () => void;
     updateIndentSheet: () => void;
+    updateIniciateSheet: () => void;
+    updateVenderMasterSheet: () => void;
     updateAll: () => void;
 
     indentSheet: IndentSheet[];
+    iniciateSheet: IniciateSheet[];
+    venderMasterSheet: VenderMasterSheet[];
     poMasterSheet: PoMasterSheet[];
     receivedSheet: ReceivedSheet[];
     inventorySheet: InventorySheet[];
     masterSheet: MasterSheet | undefined;
 
     indentLoading: boolean;
+    iniciateLoading: boolean;
+    venderMasterLoading: boolean;
     poMasterLoading: boolean;
     receivedLoading: boolean;
     inventoryLoading: boolean;
@@ -26,12 +32,16 @@ const SheetsContext = createContext<SheetsState | null>(null);
 
 export const SheetsProvider = ({ children }: { children: React.ReactNode }) => {
     const [indentSheet, setIndentSheet] = useState<IndentSheet[]>([]);
+    const [iniciateSheet, setIniciateSheet] = useState<IniciateSheet[]>([]);
+    const [venderMasterSheet, setVenderMasterSheet] = useState<VenderMasterSheet[]>([]);
     const [receivedSheet, setReceivedSheet] = useState<ReceivedSheet[]>([]);
     const [poMasterSheet, setPoMasterSheet] = useState<PoMasterSheet[]>([]);
     const [inventorySheet, setInventorySheet] = useState<InventorySheet[]>([]);
     const [masterSheet, setMasterSheet] = useState<MasterSheet>();
 
     const [indentLoading, setIndentLoading] = useState(true);
+    const [iniciateLoading, setIniciateLoading] = useState(true);
+    const [venderMasterLoading, setVenderMasterLoading] = useState(true);
     const [poMasterLoading, setPoMasterLoading] = useState(true);
     const [receivedLoading, setReceivedLoading] = useState(true);
     const [inventoryLoading, setInventoryLoading] = useState(true);
@@ -42,6 +52,25 @@ export const SheetsProvider = ({ children }: { children: React.ReactNode }) => {
         const res = await fetchSheet('INDENT');
         setIndentSheet(res as IndentSheet[]);
         setIndentLoading(false);
+    }
+    async function updateIniciateSheet() {
+        setIniciateLoading(true);
+        const res = await fetchSheet('INICIATE');
+        setIniciateSheet(res as IniciateSheet[]);
+        setIniciateLoading(false);
+    }
+    async function updateVenderMasterSheet() {
+        setVenderMasterLoading(true);
+        try {
+            const res = await fetchSheet('Vender Master');
+            setVenderMasterSheet(
+                (res as VenderMasterSheet[]).filter((v) => v.vendorName && String(v.vendorName).trim() !== '')
+            );
+        } catch {
+            setVenderMasterSheet([]);
+        } finally {
+            setVenderMasterLoading(false);
+        }
     }
     async function updateReceivedSheet() {
         setReceivedLoading(true);
@@ -75,6 +104,8 @@ export const SheetsProvider = ({ children }: { children: React.ReactNode }) => {
                 updateMasterSheet(),
                 updateReceivedSheet(),
                 updateIndentSheet(),
+                updateIniciateSheet(),
+                updateVenderMasterSheet(),
                 updatePoMasterSheet(),
                 updateInventorySheet(),
             ]);
@@ -97,14 +128,20 @@ export const SheetsProvider = ({ children }: { children: React.ReactNode }) => {
         <SheetsContext.Provider
             value={{
                 updateIndentSheet,
+                updateIniciateSheet,
+                updateVenderMasterSheet,
                 updatePoMasterSheet,
                 updateReceivedSheet,
                 updateAll,
                 indentSheet,
+                iniciateSheet,
+                venderMasterSheet,
                 poMasterSheet,
                 inventorySheet,
                 receivedSheet,
                 indentLoading,
+                iniciateLoading,
+                venderMasterLoading,
                 masterSheet,
                 poMasterLoading,
                 receivedLoading,

@@ -1,4 +1,24 @@
-export type Sheet = 'INDENT' | 'RECEIVED' | 'MASTER' | 'USER' | 'PO MASTER' | "INVENTORY" | "VENDOR" | "PRODUCT" | "PURCHASE";
+export type Sheet = 'INDENT' | 'RECEIVED' | 'MASTER' | 'USER' | 'PO MASTER' | "INVENTORY" | "VENDOR" | "PRODUCT" | "PURCHASE" | "INICIATE" | "Vender Master";
+
+export type VenderMasterSheet = {
+    vendorName: string;
+    gstNumber: string;
+    panNumber: string;
+    contactPerson: string;
+    contactPersonNumber: string;
+};
+
+export type IniciateSheet = {
+    timestamp: string;
+    indentNo: string;
+    vendorName: string;
+    vendorContactNo: string;
+    productName: string;
+    quantity: number;
+    unit: string;
+    price: number;
+    remark: string;
+};
 
 export type IndentSheet = {
     timestamp: string;
@@ -35,6 +55,10 @@ export type IndentSheet = {
     planned3: string;
     actual3: string;
     timeDelay3: string;
+    approvalStatus?: string;
+    approvedQty?: number;
+    unit?: string;
+    rmark?: string;
     approvedVendorName: string;
     approvedRate: number;
     approvedPaymentTerm: string;

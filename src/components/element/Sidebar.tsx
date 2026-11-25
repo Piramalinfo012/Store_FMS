@@ -17,7 +17,7 @@ import { RotateCw, ShoppingCart } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, APP_VERSION } from '@/lib/utils';
 import Logo from './Logo';
 
 export default ({ items }: { items: RouteAttributes[] }) => {
@@ -90,6 +90,7 @@ export default ({ items }: { items: RouteAttributes[] }) => {
             <SidebarFooter className="store-nav-footer">
                 <div className="p-2 text-center text-sm">
                     Developed By <span className="text-primary">Deepak Sahu</span>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">{APP_VERSION}</p>
                 </div>
             </SidebarFooter>
         </Sidebar>

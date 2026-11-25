@@ -23,14 +23,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const stored = localStorage.getItem('auth');
         if (stored) {
             const { username } = JSON.parse(stored);
-            fetchSheet('USER').then((res) => {
-                const user = (res as UserPermissions[]).find((user) => user.username === username);
-                if (user) {
-                    setUserPermissions(user);
-                    setLoggedIn(true);
-                }
-                setLoading(false);
-            });
+            fetchSheet('USER')
+                .then((res) => {
+                    const user = (res as UserPermissions[]).find((user) => user.username === username);
+                    if (user) {
+                        setUserPermissions(user);
+                        setLoggedIn(true);
+                    }
+                    setLoading(false);
+                })
+                .catch(() => {
+                    setLoading(false);
+                });
         } else {
             setLoading(false);
         }

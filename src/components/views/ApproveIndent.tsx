@@ -24,12 +24,13 @@ import { postToSheet } from '@/lib/fetchers';
 import { toast } from 'sonner';
 import { PuffLoader as Loader } from 'react-spinners';
 import { Tabs, TabsContent } from '../ui/tabs';
-import { ClipboardCheck, PenSquare } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, Package, PenSquare, ShieldCheck, UserPlus, XCircle } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import Heading from '../element/Heading';
 import { Pill } from '../ui/pill';
 import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 
 const statuses = ['Pending', 'Reject', 'New Vendor', 'Regular'];
 
@@ -78,8 +79,8 @@ export default () => {
             indentSheet
                 .filter(
                     (sheet) =>
-                        sheet.planned1 !== '' &&
-                        sheet.actual1 === '' &&
+                        sheet.planned3 !== '' &&
+                        sheet.actual3 === '' &&
                         sheet.indentType === 'Purchase'
                 )
                 .map((sheet) => ({
@@ -101,8 +102,8 @@ export default () => {
             indentSheet
                 .filter(
                     (sheet) =>
-                        sheet.planned1 !== '' &&
-                        sheet.actual1 !== '' &&
+                        sheet.planned3 !== '' &&
+                        sheet.actual3 !== '' &&
                         sheet.indentType === 'Purchase'
                 )
                 .map((sheet) => ({
@@ -110,12 +111,12 @@ export default () => {
                     indenter: sheet.indenterName,
                     department: sheet.department,
                     product: sheet.productName,
-                    approvedQuantity: sheet.approvedQuantity || sheet.quantity,
-                    vendorType: sheet.vendorType as HistoryData['vendorType'],
-                    uom: sheet.uom,
+                    approvedQuantity: sheet.approvedQty || sheet.approvedQuantity || sheet.quantity,
+                    vendorType: (sheet.approvalStatus || sheet.vendorType) as HistoryData['vendorType'],
+                    uom: sheet.unit || sheet.uom,
                     specifications: sheet.specifications || '',
                     date: formatDate(new Date(sheet.timestamp)),
-                    approvedDate: formatDate(new Date(sheet.actual1)),
+                    approvedDate: formatDate(new Date(sheet.actual3)),
                     // lastUpdated: sheet.lastUpdated,
                 }))
                 // Sort by indentNo in descending order (newest first)
@@ -468,8 +469,10 @@ export default () => {
     // Creating Form
     const schema = z
         .object({
-            approval: z.enum(['Reject', 'New Vendor', 'Regular']),
+            approval: z.enum(['Approve', 'Reject', 'New Vendor', 'Regular']),
             approvedQuantity: z.coerce.number().optional(),
+            unit: z.string().optional(),
+            rmark: z.string().optional(),
         })
         .superRefine((data, ctx) => {
             if (data.approval !== 'Reject') {
@@ -484,14 +487,16 @@ export default () => {
 
     const form = useForm<z.infer<typeof schema>>({
         resolver: zodResolver(schema),
-        defaultValues: { approvedQuantity: undefined, approval: undefined },
+        defaultValues: { approvedQuantity: undefined, approval: undefined, unit: '', rmark: '' },
     });
 
     const approval = form.watch('approval');
 
     useEffect(() => {
         if (selectedIndent) {
-            form.setValue("approvedQuantity", selectedIndent.quantity)
+            form.setValue('approvedQuantity', selectedIndent.quantity);
+            form.setValue('unit', selectedIndent.uom || '');
+            form.setValue('rmark', '');
         }
     }, [selectedIndent]);
 
@@ -503,8 +508,13 @@ export default () => {
                     .map((prev) => ({
                         ...prev,
                         vendorType: values.approval,
+                        approvalStatus: values.approval,
                         approvedQuantity: values.approvedQuantity,
-                        actual1: new Date().toISOString(),
+                        approvedQty: values.approvedQuantity,
+                        unit: values.unit || prev.uom,
+                        uom: values.unit || prev.uom,
+                        rmark: values.rmark || '',
+                        actual3: new Date().toISOString(),
                         lastUpdated: new Date().toISOString(), // This ensures newly approved items appear at top
                     })),
                 'update'
@@ -573,83 +583,203 @@ export default () => {
                 </Tabs>
 
                 {selectedIndent && (
-                    <DialogContent>
+                    <DialogContent className="sm:max-w-lg p-0 overflow-hidden rounded-2xl border-slate-200">
                         <Form {...form}>
                             <form
                                 onSubmit={form.handleSubmit(onSubmit, onError)}
-                                className="grid gap-5"
+                                className="flex flex-col"
                             >
-                                <DialogHeader className="grid gap-2">
-                                    <DialogTitle>Approve Indent</DialogTitle>
-                                    <DialogDescription>
-                                        Approve indent{' '}
-                                        <span className="font-medium">
-                                            {selectedIndent.indentNo}
-                                        </span>
-                                    </DialogDescription>
+                                {/* Gradient Header */}
+                                <DialogHeader className="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 px-6 py-5 border-b border-slate-200/80">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-sm">
+                                            <ClipboardCheck className="size-5" />
+                                        </div>
+                                        <div className="text-left">
+                                            <div className="flex items-center gap-2">
+                                                <DialogTitle className="text-lg font-bold text-slate-900">
+                                                    Approve Indent
+                                                </DialogTitle>
+                                                <span className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-800 border border-purple-200">
+                                                    {selectedIndent.indentNo}
+                                                </span>
+                                            </div>
+                                            <DialogDescription className="text-xs text-slate-600 mt-0.5">
+                                                Review indent details and update approval status
+                                            </DialogDescription>
+                                        </div>
+                                    </div>
                                 </DialogHeader>
 
-                                <div className="grid gap-3">
+                                <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+                                    {/* Indent Summary Card */}
+                                    <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-2.5">
+                                        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                            <Package className="size-3.5 text-purple-600" />
+                                            Item Summary
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3 text-sm">
+                                            <div className="col-span-2">
+                                                <p className="text-xs text-slate-500">Product</p>
+                                                <p className="font-semibold text-slate-900">{selectedIndent.product}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-slate-500">Indenter</p>
+                                                <p className="font-medium text-slate-800">{selectedIndent.indenter}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-slate-500">Requested Qty</p>
+                                                <p className="font-semibold text-purple-700">
+                                                    {selectedIndent.quantity} {selectedIndent.uom}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Interactive Approval Status */}
                                     <FormField
                                         control={form.control}
                                         name="approval"
                                         render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Vendor Type</FormLabel>
-                                                <Select
-                                                    onValueChange={field.onChange}
-                                                    value={field.value}
-                                                >
-                                                    <FormControl>
-                                                        <SelectTrigger className="w-full">
-                                                            <SelectValue placeholder="Select approval status" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="Regular">
-                                                            Regular
-                                                        </SelectItem>
-                                                        <SelectItem value="New Vendor">
-                                                            New Vendor
-                                                        </SelectItem>
-                                                        <SelectItem value="Reject">
-                                                            Reject
-                                                        </SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                            <FormItem className="space-y-2">
+                                                <FormLabel>
+                                                    Approval Status <span className="text-destructive">*</span>
+                                                </FormLabel>
+                                                <div className="grid grid-cols-2 gap-2.5">
+                                                    {[
+                                                        {
+                                                            value: 'Approve' as const,
+                                                            label: 'Approve',
+                                                            icon: CheckCircle2,
+                                                            active: 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20',
+                                                            iconColor: 'text-emerald-600',
+                                                        },
+                                                        {
+                                                            value: 'Regular' as const,
+                                                            label: 'Regular',
+                                                            icon: ShieldCheck,
+                                                            active: 'border-purple-500 bg-purple-50 text-purple-800 ring-2 ring-purple-500/20',
+                                                            iconColor: 'text-purple-600',
+                                                        },
+                                                        {
+                                                            value: 'New Vendor' as const,
+                                                            label: 'New Vendor',
+                                                            icon: UserPlus,
+                                                            active: 'border-blue-500 bg-blue-50 text-blue-800 ring-2 ring-blue-500/20',
+                                                            iconColor: 'text-blue-600',
+                                                        },
+                                                        {
+                                                            value: 'Reject' as const,
+                                                            label: 'Reject',
+                                                            icon: XCircle,
+                                                            active: 'border-red-500 bg-red-50 text-red-800 ring-2 ring-red-500/20',
+                                                            iconColor: 'text-red-600',
+                                                        },
+                                                    ].map((opt) => {
+                                                        const Icon = opt.icon;
+                                                        const isSelected = field.value === opt.value;
+                                                        return (
+                                                            <button
+                                                                key={opt.value}
+                                                                type="button"
+                                                                onClick={() => field.onChange(opt.value)}
+                                                                className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-all cursor-pointer ${
+                                                                    isSelected
+                                                                        ? opt.active
+                                                                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                                                                }`}
+                                                            >
+                                                                <Icon className={`size-4 shrink-0 ${isSelected ? opt.iconColor : 'text-slate-400'}`} />
+                                                                <span>{opt.label}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
                                             </FormItem>
                                         )}
                                     />
+
+                                    <div className="grid grid-cols-2 gap-3.5">
+                                        <FormField
+                                            control={form.control}
+                                            name="approvedQuantity"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Approved Qty</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="number"
+                                                            {...field}
+                                                            disabled={approval === 'Reject'}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="unit"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Unit</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="e.g. Pcs, Kgs"
+                                                            {...field}
+                                                            disabled={approval === 'Reject'}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
                                     <FormField
                                         control={form.control}
-                                        name="approvedQuantity"
+                                        name="rmark"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Quantity</FormLabel>
+                                                <FormLabel>Remark</FormLabel>
                                                 <FormControl>
-                                                    <Input
+                                                    <Textarea
+                                                        placeholder="Enter remark or approval notes..."
+                                                        className="resize-y min-h-[76px]"
                                                         {...field}
-                                                        disabled={approval === 'Reject'}
                                                     />
                                                 </FormControl>
                                             </FormItem>
                                         )}
                                     />
                                 </div>
-                                <DialogFooter>
+
+                                <DialogFooter className="bg-slate-50/90 px-6 py-4 border-t border-slate-200/80 gap-2">
                                     <DialogClose asChild>
-                                        <Button variant="outline">Close</Button>
+                                        <Button variant="outline" type="button" className="rounded-xl">
+                                            Close
+                                        </Button>
                                     </DialogClose>
 
-                                    <Button type="submit" disabled={form.formState.isSubmitting}>
-                                        {form.formState.isSubmitting && (
+                                    <Button
+                                        type="submit"
+                                        disabled={form.formState.isSubmitting}
+                                        className={`rounded-xl font-semibold text-white shadow-sm gap-2 ${
+                                            approval === 'Reject'
+                                                ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700'
+                                                : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+                                        }`}
+                                    >
+                                        {form.formState.isSubmitting ? (
                                             <Loader
-                                                size={20}
+                                                size={18}
                                                 color="white"
                                                 aria-label="Loading Spinner"
                                             />
+                                        ) : approval === 'Reject' ? (
+                                            <XCircle className="size-4" />
+                                        ) : (
+                                            <CheckCircle2 className="size-4" />
                                         )}
-                                        Approve
+                                        {approval === 'Reject' ? 'Reject Indent' : 'Approve Indent'}
                                     </Button>
                                 </DialogFooter>
                             </form>

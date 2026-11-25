@@ -12,6 +12,7 @@ import CreateIndent from './components/views/CreateIndent';
 import Dashboard from './components/views/Dashboard';
 import App from './App';
 import ApproveIndent from '@/components/views/ApproveIndent';
+import InitiatePurchase from '@/components/views/InitiatePurchase';
 import { SheetsProvider } from './context/SheetsContext';
 import VendorUpdate from './components/views/VendorUpdate';
 import RateApproval from './components/views/RateApproval';
@@ -34,6 +35,7 @@ import {
     Package2,
     Store,
     VideoIcon,
+    ShoppingCart,
 } from 'lucide-react';
 import type { UserPermissions } from './types/sheets';
 import Administration from './components/views/Administration';
@@ -46,8 +48,8 @@ import Inventory from './components/views/Inventory';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { loggedIn, loading } = useAuth();
-    if (loading) return <Loading />;
-    return loggedIn ? children : <Navigate to="/login" />;
+    if (loading) return <div key="loading"><Loading /></div>;
+    return loggedIn ? <div key="app" className="contents">{children}</div> : <Navigate to="/login" />;
 }
 
 function GatedRoute({
@@ -103,10 +105,19 @@ const routes: RouteAttributes[] = [
         notifications: (sheets) =>
             sheets.filter(
                 (sheet) =>
-                    sheet.planned1 !== '' &&
-                    sheet.vendorType === '' &&
-                    (sheet.indentType === 'Purchase')
+                    sheet.planned3 !== '' &&
+                    sheet.actual3 === '' &&
+                    sheet.indentType === 'Purchase'
             ).length,
+    },
+    {
+        path: 'initiate-purchase',
+        gateKey: 'createPo',
+        name: 'Initiate Purchase',
+        icon: <ShoppingCart size={20} />,
+        element: <InitiatePurchase />,
+        notifications: (sheets) =>
+            sheets.filter((sheet) => (sheet.actual3 !== '' || sheet.actual1 !== '') && sheet.actual4 === '' && sheet.indentType === 'Purchase' && sheet.vendorType !== 'Reject').length,
     },
     // {
     //     path: 'vendor-rate-update',
@@ -224,8 +235,8 @@ createRoot(document.getElementById('root')!).render(
                         }
                     >
                         {routes.map(({ path, element, gateKey }) => {
-                            // console.log("path", path);
                             return <Route
+                                key={path || 'index'}
                                 path={path}
                                 element={<GatedRoute identifier={gateKey} path={path}>{element}</GatedRoute>}
                             />

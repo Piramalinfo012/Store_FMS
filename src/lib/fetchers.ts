@@ -1,4 +1,4 @@
-import type { IndentSheet, MasterSheet, ReceivedSheet, Sheet } from '@/types';
+import type { IndentSheet, IniciateSheet, MasterSheet, ReceivedSheet, Sheet, VenderMasterSheet } from '@/types';
 import type { InventorySheet, PoMasterSheet, UserPermissions, Vendor } from '@/types/sheets';
 
 export async function uploadFile(file: File, folderId: string, uploadType: 'upload' | 'email' = 'upload', email?: string): Promise<string> {
@@ -42,7 +42,7 @@ export async function uploadFile(file: File, folderId: string, uploadType: 'uplo
 
 export async function fetchSheet(
     sheetName: Sheet
-): Promise<MasterSheet | IndentSheet[] | ReceivedSheet[] | UserPermissions[] | PoMasterSheet[] | InventorySheet[]> {
+): Promise<MasterSheet | IndentSheet[] | IniciateSheet[] | VenderMasterSheet[] | ReceivedSheet[] | UserPermissions[] | PoMasterSheet[] | InventorySheet[]> {
     const url = `${import.meta.env.VITE_APP_SCRIPT_URL}?sheetName=${encodeURIComponent(sheetName)}`;
     const response = await fetch(url, {
         method: 'GET',
@@ -107,6 +107,8 @@ export async function fetchSheet(
 export async function postToSheet(
     data:
         | Partial<IndentSheet>[]
+        | Partial<IniciateSheet>[]
+        | Partial<VenderMasterSheet>[]
         | Partial<ReceivedSheet>[]
         | Partial<UserPermissions>[]
         | Partial<PoMasterSheet>[]
