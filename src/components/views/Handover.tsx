@@ -108,9 +108,8 @@ export default () => {
                 .filter(
                     (sheet) =>
                         sheet.indentType === 'Store Out' &&
-                        sheet.issueStatus === 'Approved' &&
-                        sheet.planned7 !== '' &&
-                        sheet.actual7 === ''
+                        String(sheet.planned7 || '').trim() !== '' &&
+                        String(sheet.actual7 || '').trim() === ''
                 )
                 .map((sheet) => ({
                     indentNo: sheet.indentNumber,
@@ -134,8 +133,8 @@ export default () => {
                 .filter(
                     (sheet) =>
                         sheet.indentType === 'Store Out' &&
-                        sheet.planned7 !== '' &&
-                        sheet.actual7 !== ''
+                        String(sheet.planned7 || '').trim() !== '' &&
+                        String(sheet.actual7 || '').trim() !== ''
                 )
                 .map((sheet) => ({
                     indentNo: sheet.indentNumber,

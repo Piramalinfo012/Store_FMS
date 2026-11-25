@@ -221,10 +221,9 @@ const routes: RouteAttributes[] = [
         notifications: (sheets) =>
             sheets.filter(
                 (sheet) =>
-                    sheet.planned7 !== '' &&
-                    sheet.actual7 === '' &&
-                    sheet.issueStatus === 'Approved' &&
-                    sheet.indentType === 'Store Out'
+                    sheet.indentType === 'Store Out' &&
+                    String(sheet.planned7 || '').trim() !== '' &&
+                    String(sheet.actual7 || '').trim() === ''
             ).length,
     },
     {

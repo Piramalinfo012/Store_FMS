@@ -80,10 +80,9 @@ export default ({ children, heading, subtext, actions, tabs = false }: HeaderPro
                 allowed: Boolean(user?.storeOutApprovalView),
                 count: indentSheet.filter(
                     (s) =>
-                        s.planned7 !== '' &&
-                        s.actual7 === '' &&
-                        s.issueStatus === 'Approved' &&
-                        s.indentType === 'Store Out'
+                        s.indentType === 'Store Out' &&
+                        String(s.planned7 || '').trim() !== '' &&
+                        String(s.actual7 || '').trim() === ''
                 ).length,
             },
         ].filter((item) => item.allowed);
