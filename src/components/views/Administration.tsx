@@ -3,9 +3,10 @@ import { CheckCircle2, Copy, Eye, EyeClosed, History, MessageSquare, MoreHorizon
 import {
     loadLocalWhatsAppLogs,
     loadMaytapiConfig,
+    loadMaytapiConfigFromSheet,
     logWhatsAppToSheet,
     normalizeWhatsAppNumber,
-    saveMaytapiConfig,
+    saveMaytapiConfigToSheet,
     sendMaytapiMessage,
     type MaytapiConfig,
     type WhatsappLogRow,
@@ -88,6 +89,13 @@ export default () => {
     const [showPassword, setShowPassword] = useState(false);
     const [openWaDialog, setOpenWaDialog] = useState(false);
     const [waConfig, setWaConfig] = useState<MaytapiConfig>(() => loadMaytapiConfig());
+    const [savingWaConfig, setSavingWaConfig] = useState(false);
+
+    useEffect(() => {
+        loadMaytapiConfigFromSheet().then((remote) => {
+            if (remote) setWaConfig(remote);
+        });
+    }, []);
     const [showWaToken, setShowWaToken] = useState(false);
     const [testPhone, setTestPhone] = useState('');
     const [sendingTest, setSendingTest] = useState(false);
@@ -100,7 +108,9 @@ export default () => {
         const localLogs = loadLocalWhatsAppLogs();
         try {
             const res = await fetchSheet('Whatsapp Log');
-            const sheetLogs = [...(res as unknown as WhatsappLogRow[])].reverse();
+            const sheetLogs = [...(res as unknown as WhatsappLogRow[])]
+                .filter((r) => r.indentType !== 'SYSTEM_CONFIG' && r.indentNo !== 'CONFIG')
+                .reverse();
             const seen = new Set(sheetLogs.map((l) => `${l.timestamp}|${l.phone}|${l.indentNo}`));
             const merged = [
                 ...sheetLogs,
@@ -835,15 +845,22 @@ export default () => {
                         </Button>
                         <Button
                             type="button"
+                            disabled={savingWaConfig}
                             className="rounded-full bg-[#687F6E] hover:bg-[#4F6354] text-[#FAF8F4] gap-1.5"
-                            onClick={() => {
-                                saveMaytapiConfig(waConfig);
-                                toast.success('Maytapi WhatsApp settings saved');
+                            onClick={async () => {
+                                setSavingWaConfig(true);
+                                const synced = await saveMaytapiConfigToSheet(waConfig);
+                                setSavingWaConfig(false);
+                                if (synced) {
+                                    toast.success('Maytapi WhatsApp settings saved & synced to sheet');
+                                } else {
+                                    toast.success('Saved locally (Add Config column in I1 of Whatsapp Log sheet to sync)');
+                                }
                                 setOpenWaDialog(false);
                             }}
                         >
                             <CheckCircle2 className="size-4" />
-                            Save Credentials
+                            {savingWaConfig ? 'Saving...' : 'Save Credentials'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -874,13 +891,13 @@ export default () => {
                                 className="rounded-full gap-1.5 text-xs"
                                 onClick={() => {
                                     const headers =
-                                        'Timestamp\tIndent No\tIndent Type\tRecipient Name\tPhone\tMessage\tStatus\tResponse';
+                                        'Timestamp\tIndent No\tIndent Type\tRecipient Name\tPhone\tMessage\tStatus\tResponse\tConfig';
                                     navigator.clipboard.writeText(headers);
                                     toast.success('Copied Row 1 headers! Paste in A1 of Whatsapp Log sheet.');
                                 }}
                             >
                                 <Copy className="size-3.5" />
-                                Copy Sheet Headers (A1:H1)
+                                Copy Sheet Headers (A1:I1)
                             </Button>
                         </div>
                     </DialogHeader>

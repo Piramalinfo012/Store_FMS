@@ -1,4 +1,4 @@
-import { postToSheet } from './fetchers';
+import { fetchSheet, postToSheet } from './fetchers';
 
 export interface WhatsAppRecipient {
     name: string;
@@ -87,6 +87,77 @@ export function saveMaytapiConfig(config: MaytapiConfig) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 }
 
+function normalizeParsedConfig(parsed: Partial<MaytapiConfig>): MaytapiConfig {
+    return {
+        enabled: Boolean(parsed.enabled),
+        productId: String(parsed.productId || ''),
+        phoneId: String(parsed.phoneId || ''),
+        token: String(parsed.token || ''),
+        purchaseRecipients: Array.from({ length: 4 }, (_, i) => ({
+            name: String(parsed.purchaseRecipients?.[i]?.name || ''),
+            phone: String(parsed.purchaseRecipients?.[i]?.phone || ''),
+        })),
+        storeOutRecipients: Array.from({ length: 2 }, (_, i) => ({
+            name: String(parsed.storeOutRecipients?.[i]?.name || ''),
+            phone: String(parsed.storeOutRecipients?.[i]?.phone || ''),
+        })),
+    };
+}
+
+export async function saveMaytapiConfigToSheet(config: MaytapiConfig): Promise<boolean> {
+    saveMaytapiConfig(config);
+    try {
+        await postToSheet(
+            [
+                {
+                    timestamp: new Date().toISOString(),
+                    indentNo: 'CONFIG',
+                    indentType: 'SYSTEM_CONFIG',
+                    recipientName: 'Maytapi Config',
+                    phone: '-',
+                    message: 'WhatsApp settings updated',
+                    status: config.enabled ? 'Active' : 'Inactive',
+                    response: '-',
+                    config: JSON.stringify(config),
+                },
+            ],
+            'insert',
+            'Whatsapp Log'
+        );
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+export async function loadMaytapiConfigFromSheet(): Promise<MaytapiConfig | null> {
+    try {
+        const rows = (await fetchSheet('Whatsapp Log')) as unknown as WhatsappLogRow[];
+        if (!Array.isArray(rows)) return null;
+        for (let i = rows.length - 1; i >= 0; i--) {
+            const rawConfig = rows[i]?.config;
+            if (typeof rawConfig === 'string' && rawConfig.trim().startsWith('{')) {
+                const parsed = JSON.parse(rawConfig) as Partial<MaytapiConfig>;
+                const normalized = normalizeParsedConfig(parsed);
+                saveMaytapiConfig(normalized);
+                return normalized;
+            }
+        }
+        return null;
+    } catch {
+        return null;
+    }
+}
+
+export async function getEffectiveMaytapiConfig(): Promise<MaytapiConfig> {
+    const local = loadMaytapiConfig();
+    if (local.enabled && local.productId.trim() && local.phoneId.trim() && local.token.trim()) {
+        return local;
+    }
+    const remote = await loadMaytapiConfigFromSheet();
+    return remote || local;
+}
+
 export function normalizeWhatsAppNumber(raw: string): string {
     const digits = raw.replace(/\D/g, '');
     if (!digits) return '';
@@ -103,6 +174,7 @@ export interface WhatsappLogRow {
     message: string;
     status: string;
     response: string;
+    config?: string;
 }
 
 export async function logWhatsAppToSheet(rows: WhatsappLogRow[]) {
@@ -212,7 +284,7 @@ export async function sendIndentApprovedWhatsAppNotifications(params: {
     approvedBy?: string;
     remark?: string;
 }): Promise<{ sent: number; failed: number; skipped: boolean }> {
-    const config = loadMaytapiConfig();
+    const config = await getEffectiveMaytapiConfig();
     if (!config.enabled || !config.productId.trim() || !config.phoneId.trim() || !config.token.trim()) {
         return { sent: 0, failed: 0, skipped: true };
     }
@@ -262,7 +334,7 @@ export async function sendIndentWhatsAppNotifications(params: {
         areaOfUse: string;
     }[];
 }): Promise<{ sent: number; failed: number; skipped: boolean }> {
-    const config = loadMaytapiConfig();
+    const config = await getEffectiveMaytapiConfig();
     if (!config.enabled || !config.productId.trim() || !config.phoneId.trim() || !config.token.trim()) {
         return { sent: 0, failed: 0, skipped: true };
     }
