@@ -383,34 +383,6 @@ export default () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
-                                    name="handoverDate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Handover Date (Actual 7)</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="date"
-                                                    value={
-                                                        field.value
-                                                            ? field.value.toISOString().split('T')[0]
-                                                            : ''
-                                                    }
-                                                    onChange={(e) =>
-                                                        field.onChange(
-                                                            e.target.value
-                                                                ? new Date(e.target.value)
-                                                                : undefined
-                                                        )
-                                                    }
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-
-                                <FormField
-                                    control={form.control}
                                     name="handoverQty"
                                     render={({ field }) => (
                                         <FormItem>

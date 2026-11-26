@@ -233,20 +233,23 @@ export default () => {
             updateIndentSheet();
             toast.success('Indent created successufully');
 
-            // Send Maytapi WhatsApp notifications (4 people for Purchase, 2 people for Store Out)
-            sendIndentWhatsAppNotifications({
-                indentNumber: nextIndentNumber,
-                indentType: data.indentType,
-                indenterName: data.indenterName,
-                indentApprovedBy: data.indentApproveBy,
-                products: data.products,
-            }).then((waRes) => {
-                if (!waRes.skipped && waRes.sent > 0) {
-                    toast.success(`WhatsApp alert sent to ${waRes.sent} recipient(s)`);
-                } else if (!waRes.skipped && waRes.failed > 0) {
-                    toast.error('WhatsApp alert failed to send. Check Maytapi credentials.');
-                }
-            });
+            // Send Maytapi WhatsApp notification only for Store Out requests on raise;
+            // Purchase indent details SMS is sent only after approval in ApproveIndent with approved qty.
+            if (data.indentType === 'Store Out') {
+                sendIndentWhatsAppNotifications({
+                    indentNumber: nextIndentNumber,
+                    indentType: data.indentType,
+                    indenterName: data.indenterName,
+                    indentApprovedBy: data.indentApproveBy,
+                    products: data.products,
+                }).then((waRes) => {
+                    if (!waRes.skipped && waRes.sent > 0) {
+                        toast.success(`WhatsApp alert sent to ${waRes.sent} recipient(s)`);
+                    } else if (!waRes.skipped && waRes.failed > 0) {
+                        toast.error('WhatsApp alert failed to send. Check Maytapi credentials.');
+                    }
+                });
+            }
             setOpenDialog(false);
             form.reset({
                 indenterName: '',
